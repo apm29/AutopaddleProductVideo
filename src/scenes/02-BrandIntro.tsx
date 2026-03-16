@@ -103,7 +103,7 @@ export const BrandIntro: React.FC = () => {
               letterSpacing: "0.04em",
             }}
           >
-            蜻蜓助手
+            蜻蜓工业助手
           </p>
           <p
             style={{
@@ -216,8 +216,8 @@ export const BrandIntro: React.FC = () => {
       </div>
 
       <Subtitle
-        zh="蜻蜓助手——工业数据采集平台"
-        en="QingTing Assistant — Industrial Data Platform"
+        zh="蜻蜓工业助手——工业数据采集平台"
+        en="QingTing Industrial Assistant — Industrial Data Platform"
         startFrame={15}
       />
     </AbsoluteFill>

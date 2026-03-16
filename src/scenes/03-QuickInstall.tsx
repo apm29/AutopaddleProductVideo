@@ -328,25 +328,26 @@ export const QuickInstall: React.FC = () => {
             <div style={{ display: "flex", gap: 40, flex: 1 }}>
               <Step
                 number={1}
-                title="下载并安装"
+                title="选择安装位置"
                 desc="一键安装包，双击即可，5 分钟完成"
-                screenshotLabel="安装引导界面"
+                screenshotSrc="install-01-path-select.png"
+                screenshotLabel="选择安装路径"
                 delay={240}
               />
               <Step
                 number={2}
-                title="配置内网地址"
-                desc="填写企业内网 IP，AI 自动识别设备"
-                screenshotSrc={undefined}
-                screenshotLabel="安装配置界面"
+                title="完成安装"
+                desc="安装完成后自动启动，无需额外配置"
+                screenshotSrc="install-03-complete.png"
+                screenshotLabel="安装完成"
                 delay={360}
               />
               <Step
                 number={3}
-                title="设备自动发现"
-                desc="平台自动扫描并列出可接入设备"
-                screenshotSrc={undefined}
-                screenshotLabel="设备发现列表"
+                title="输入身份凭证，开始使用"
+                desc="填写助手身份证号完成认证，即可接入设备"
+                screenshotSrc="install-04-login.png"
+                screenshotLabel="主界面登录"
                 delay={480}
                 isLast
               />

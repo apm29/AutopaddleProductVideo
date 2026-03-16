@@ -117,7 +117,7 @@ export const BrandOutro: React.FC = () => {
               letterSpacing: "0.04em",
             }}
           >
-            蜻蜓助手
+            蜻蜓工业助手
           </p>
           <p
             style={{
