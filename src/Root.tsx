@@ -1,17 +1,18 @@
 import "./index.css";
 import { Composition } from "remotion";
-import { MyComposition } from "./Composition";
+import { QingTingVideo } from "./compositions/QingTingVideo";
+import { TOTAL_FRAMES } from "./constants/timing";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
       <Composition
-        id="MyComp"
-        component={MyComposition}
-        durationInFrames={60}
+        id="QingTingVideo"
+        component={QingTingVideo}
+        durationInFrames={TOTAL_FRAMES}
         fps={30}
-        width={1280}
-        height={720}
+        width={1920}
+        height={1080}
       />
     </>
   );
