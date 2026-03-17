@@ -334,8 +334,8 @@ const Scene3VideoSection: React.FC = () => {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        padding: "60px 60px",
-        gap: 60,
+        padding: "40px 60px",
+        gap: 40,
       }}
     >
       {/* Background grid */}
@@ -358,7 +358,7 @@ const Scene3VideoSection: React.FC = () => {
       })}
 
       {/* Left: step checklist */}
-      <div style={{ opacity: interpolate(panelSpring, [0, 1], [0, 1]), transform: `translateX(${panelX}px)`, flex: "0 0 320px", zIndex: 1 }}>
+      <div style={{ opacity: interpolate(panelSpring, [0, 1], [0, 1]), transform: `translateX(${panelX}px)`, flex: "0 0 240px", zIndex: 1 }}>
         <p style={{ margin: "0 0 36px", fontSize: 22, fontWeight: 500, color: COLORS.textSecondary, fontFamily: '"Inter", sans-serif', letterSpacing: "0.08em", textTransform: "uppercase" }}>
           Distribute Steps
         </p>
@@ -368,7 +368,7 @@ const Scene3VideoSection: React.FC = () => {
       </div>
 
       {/* Right: framed video */}
-      <div style={{ flex: "0 0 980px", opacity: combinedOpacity, transform: videoTransform, transformOrigin: "center center", zIndex: 1, position: "relative" }}>
+      <div style={{ flex: "0 0 1200px", opacity: combinedOpacity, transform: videoTransform, transformOrigin: "center center", zIndex: 1, position: "relative" }}>
         {/* Glow halo */}
         <div style={{ position: "absolute", inset: -60, borderRadius: 32, background: `${COLORS.brandBlue}${Math.round(glowPulse * 255).toString(16).padStart(2, "0")}`, filter: "blur(72px)" }} />
         <div style={{ position: "absolute", inset: -90, borderRadius: 40, background: `${COLORS.accent}${Math.round(glowPulse * 0.35 * 255).toString(16).padStart(2, "0")}`, filter: "blur(90px)" }} />

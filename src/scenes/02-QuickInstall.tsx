@@ -434,8 +434,8 @@ const InstallVideoSection: React.FC = () => {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        padding: "60px 80px",
-        gap: 80,
+        padding: "40px 60px",
+        gap: 40,
       }}
     >
       {/* Background grid */}
@@ -479,7 +479,7 @@ const InstallVideoSection: React.FC = () => {
         style={{
           opacity: interpolate(panelSpring, [0, 1], [0, 1]),
           transform: `translateX(${panelX}px)`,
-          flex: "0 0 320px",
+          flex: "0 0 240px",
           zIndex: 1,
         }}
       >
@@ -504,7 +504,7 @@ const InstallVideoSection: React.FC = () => {
       {/* ── Right: card-flip wrapper ── */}
       <div
         style={{
-          flex: "0 0 820px",
+          flex: "0 0 1100px",
           position: "relative",
           zIndex: 1,
         }}

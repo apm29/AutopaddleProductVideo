@@ -257,8 +257,8 @@ const DeviceMonitorVideoSection: React.FC = () => {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        padding: "60px 60px",
-        gap: 60,
+        padding: "40px 60px",
+        gap: 40,
       }}
     >
       {/* Background grid */}
@@ -302,7 +302,7 @@ const DeviceMonitorVideoSection: React.FC = () => {
         style={{
           opacity: interpolate(panelSpring, [0, 1], [0, 1]),
           transform: `translateX(${panelX}px)`,
-          flex: "0 0 320px",
+          flex: "0 0 240px",
           zIndex: 1,
         }}
       >
@@ -327,7 +327,7 @@ const DeviceMonitorVideoSection: React.FC = () => {
       {/* Right: framed video */}
       <div
         style={{
-          flex: "0 0 820px",
+          flex: "0 0 1200px",
           opacity: combinedOpacity,
           transform: videoTransform,
           transformOrigin: "center center",
