@@ -402,108 +402,448 @@ const Scene3VideoSection: React.FC = () => {
   );
 };
 
-// ── Program distribute animation (120f / 4s) ──────────────────────────────
-const ProgramDistributeTransition: React.FC<{ startFrame: number }> = ({ startFrame }) => {
+// ── Scene 3 animation cards (120f / 4s) ───────────────────────────────────
+// 3-column layout: progress monitoring | AI optimize | file distribution
+
+const Scene3AnimationSection: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const f = frame - startFrame;
 
-  const serverS = spring({ frame: f, fps, config: { damping: 180 }, durationInFrames: 18 });
-  const serverOpacity = interpolate(serverS, [0, 1], [0, 1]);
-  const serverScale   = interpolate(serverS, [0, 1], [0.8, 1]);
+  // Staggered card entrance springs
+  const cardS = [0, 15, 30].map((delay) =>
+    spring({ frame: frame - delay, fps, config: { damping: 170 }, durationInFrames: 24 })
+  );
 
-  const packetX = (offset: number) =>
-    interpolate(f - offset, [0, 22], [-5, 105], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const titleOpacity = interpolate(frame, [0, 16], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  const deviceLit = (i: number) => f >= 18 + i * 5;
-  const deviceS   = (i: number) =>
-    spring({ frame: f - (18 + i * 5), fps, config: { damping: 200 }, durationInFrames: 14 });
+  // ── Card 1: Device monitoring cards ──
+  const deviceCards = [
+    { name: "CNC-01", status: "运行中", program: "O0015.nc", cur: 12,  total: 1284, startF: 8  },
+    { name: "CNC-02", status: "运行中", program: "O0008.nc", cur: 7,   total: 956,  startF: 14 },
+    { name: "CNC-03", status: "空闲",   program: "--",        cur: 0,   total: 2103, startF: 20 },
+    { name: "CNC-04", status: "运行中", program: "O0021.nc", cur: 19,  total: 743,  startF: 26 },
+    { name: "CNC-05", status: "离线",   program: "--",        cur: 0,   total: 612,  startF: 32 },
+  ];
+  const statusColor = (s: string) =>
+    s === "运行中" ? COLORS.brandBlue : s === "空闲" ? COLORS.textSecondary : "#FF5F57";
 
-  const textOpacity = interpolate(f, [24, 36], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // ── Card 2: AI optimization suggestions ──
+  const suggestions = [
+    { text: "主轴利用率 +12%",    sub: "较上周提升",     delay: 18 },
+    { text: "建议调整排程优先级", sub: "CNC-02 优先上机", delay: 34 },
+    { text: "预计提前完工 1.5h",  sub: "本班次任务",      delay: 50 },
+  ];
+  const badgeOpacity = interpolate(frame, [80, 92], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const badgeScale   = interpolate(frame, [80, 92], [0.7, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  const DEVICES = 6;
+  // ── Card 3: File distribution ──
+  const distMachines = [52, 138, 224, 310]; // x positions for 4 CNC columns (in SVG coords, origin = left)
+  const litFrames    = [28, 40, 52, 64];
+  const finalBadge   = interpolate(frame, [78, 90], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // packet travel: y from 52 (server bottom) to 168 (machine top), frame range [22, 44]
+  const packetY = (col: number) =>
+    interpolate(frame - col * 4, [22, 50], [52, 162], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const packetVisible = (col: number) => {
+    const f = frame - col * 4;
+    return f >= 22 && f < 50;
+  };
+
+  const CARD_STYLE: React.CSSProperties = {
+    flex: 1,
+    borderRadius: 16,
+    border: `1px solid ${COLORS.border}`,
+    background: COLORS.bgSecondary,
+    display: "flex",
+    flexDirection: "column",
+    overflow: "hidden",
+  };
 
   return (
-    <AbsoluteFill style={{ backgroundColor: COLORS.bgPrimary, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 45%, ${COLORS.brandBlue}10 0%, transparent 60%)` }} />
+    <AbsoluteFill
+      style={{
+        backgroundColor: COLORS.bgPrimary,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "32px 72px 40px",
+        gap: 18,
+      }}
+    >
+      {/* Ambient glow */}
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 50%, ${COLORS.brandBlue}09 0%, transparent 65%)` }} />
 
-      <div style={{ width: "80%", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+      {/* Section label */}
+      <p
+        style={{
+          opacity: titleOpacity,
+          margin: 0,
+          fontSize: 27,
+          fontWeight: 500,
+          color: COLORS.textSecondary,
+          fontFamily: '"Inter", sans-serif',
+          letterSpacing: "0.10em",
+          textTransform: "uppercase",
+        }}
+      >
+        Deep Integration Capabilities
+      </p>
 
-        {/* Server block */}
-        <div style={{ opacity: serverOpacity, transform: `scale(${serverScale})`, display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
-          <svg width="96" height="108" viewBox="0 0 96 108" fill="none">
-            {[0, 36, 72].map((y) => (
-              <g key={y}>
-                <rect x="4" y={y} width="88" height="28" rx="6" fill="#1A2040" stroke={COLORS.brandBlue} strokeWidth="1.5" />
-                <rect x="12" y={y + 8} width="48" height="6" rx="3" fill="#253060" />
-                <circle cx="78" cy={y + 11} r="4" fill={COLORS.brandBlue} opacity="0.9" />
-                <circle cx="68" cy={y + 11} r="3" fill="#28C840" opacity="0.7" />
-              </g>
-            ))}
-          </svg>
-          <span style={{ fontSize: 16, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', fontWeight: 600 }}>
-            蜻蜓平台
-          </span>
-        </div>
+      {/* ── 3 cards ── */}
+      <div style={{ display: "flex", gap: 24, width: "100%", flex: 1, minHeight: 0 }}>
 
-        {/* Arrow + packets channel */}
-        <div style={{ flex: 1, position: "relative", height: 108 }}>
-          {[24, 54, 84].map((y) => (
-            <div key={y} style={{ position: "absolute", top: y - 1, left: 0, right: 0, height: 2, background: `repeating-linear-gradient(90deg, ${COLORS.brandBlue}55 0px, ${COLORS.brandBlue}55 8px, transparent 8px, transparent 16px)` }} />
-          ))}
-          {[0, 4, 8].map((offset, li) => {
-            const px = packetX(10 + offset);
-            const inRange = px > -5 && px < 105;
-            return inRange ? (
-              <div key={li} style={{ position: "absolute", top: [17, 47, 77][li], left: `${px}%`, width: 18, height: 10, background: COLORS.brandBlue, borderRadius: 3, boxShadow: `0 0 8px ${COLORS.brandBlue}`, transform: "translateX(-50%)" }} />
-            ) : null;
-          })}
-          <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)" }}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path d="M4 10h12M12 5l6 5-6 5" stroke={COLORS.brandBlue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+        {/* ── Card 1: 生产进度接口 ── */}
+        <div
+          style={{
+            ...CARD_STYLE,
+            opacity: interpolate(cardS[0], [0, 1], [0, 1]),
+            transform: `translateY(${interpolate(cardS[0], [0, 1], [32, 0])}px)`,
+            borderColor: `${COLORS.brandBlue}55`,
+          }}
+        >
+          {/* Card header */}
+          <div
+            style={{
+              padding: "16px 20px 14px",
+              borderBottom: `1px solid ${COLORS.border}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.brandBlue, boxShadow: `0 0 8px ${COLORS.brandBlue}` }} />
+            <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+              生产进度监控
+            </span>
+            <div style={{ marginLeft: "auto", display: "flex", gap: 12 }}>
+              {[
+                { label: "运行中", count: 3, color: COLORS.brandBlue },
+                { label: "空闲",   count: 1, color: COLORS.textSecondary },
+                { label: "离线",   count: 1, color: "#FF5F57" },
+              ].map((s) => (
+                <span key={s.label} style={{ fontSize: 20, color: s.color, fontFamily: '"Inter",sans-serif', opacity: 0.85 }}>
+                  <span style={{ fontWeight: 700 }}>{s.count}</span> {s.label}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Device cards grid */}
+          <div style={{ padding: "14px", display: "flex", flexWrap: "wrap", gap: 12, flex: 1, alignContent: "center" }}>
+            {deviceCards.map((m, i) => {
+              const cardSpring = spring({ frame: frame - (m.startF - 4), fps, config: { damping: 200 }, durationInFrames: 20 });
+              const cardOpacity = interpolate(cardSpring, [0, 1], [0, 1]);
+              const cardY = interpolate(cardSpring, [0, 1], [14, 0]);
+              const curDisplay = Math.round(
+                interpolate(frame, [m.startF, m.startF + 45], [0, m.cur], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+              );
+              const sc = statusColor(m.status);
+              const isRunning = m.status === "运行中";
+              return (
+                <div
+                  key={i}
+                  style={{
+                    opacity: cardOpacity,
+                    transform: `translateY(${cardY}px)`,
+                    width: "calc(50% - 6px)",
+                    borderRadius: 12,
+                    border: `1px solid ${sc}33`,
+                    background: isRunning ? `${COLORS.brandBlue}09` : "#0D0D1A",
+                    padding: "14px 16px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 9,
+                    boxShadow: isRunning ? `0 0 12px ${COLORS.brandBlue}18` : "none",
+                  }}
+                >
+                  {/* Name + status */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 22, fontWeight: 700, color: COLORS.textPrimary, fontFamily: '"Inter",monospace' }}>
+                      {m.name}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 18,
+                        fontWeight: 600,
+                        color: sc,
+                        background: `${sc}18`,
+                        border: `1px solid ${sc}44`,
+                        padding: "2px 8px",
+                        borderRadius: 4,
+                        fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif',
+                      }}
+                    >
+                      {m.status}
+                    </span>
+                  </div>
+
+                  {/* Program */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <span style={{ fontSize: 18, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>程序</span>
+                    <span style={{ fontSize: 20, fontWeight: 600, color: isRunning ? COLORS.brandBlue : COLORS.textSecondary, fontFamily: '"Inter",monospace', opacity: isRunning ? 1 : 0.45 }}>
+                      {m.program}
+                    </span>
+                  </div>
+
+                  {/* Divider */}
+                  <div style={{ height: 1, background: COLORS.border, opacity: 0.6 }} />
+
+                  {/* Counts */}
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      <span style={{ fontSize: 18, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>当前完成</span>
+                      <span style={{ fontSize: 30, fontWeight: 700, color: isRunning ? COLORS.textPrimary : COLORS.textSecondary, fontFamily: '"Inter","JetBrains Mono",monospace', lineHeight: 1 }}>
+                        {curDisplay}<span style={{ fontSize: 18, fontWeight: 400, marginLeft: 2 }}>件</span>
+                      </span>
+                    </div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1, alignItems: "flex-end" }}>
+                      <span style={{ fontSize: 18, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>累计完成</span>
+                      <span style={{ fontSize: 30, fontWeight: 700, color: COLORS.textSecondary, fontFamily: '"Inter","JetBrains Mono",monospace', lineHeight: 1, opacity: 0.7 }}>
+                        {m.total.toLocaleString()}<span style={{ fontSize: 18, fontWeight: 400, marginLeft: 2 }}>件</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* CNC machine nodes grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, opacity: serverOpacity }}>
-          {Array.from({ length: DEVICES }, (_, i) => {
-            const lit = deviceLit(i);
-            const s   = lit ? deviceS(i) : 0;
-            const nodeColor = lit ? COLORS.brandBlue : "#253060";
-            const scl = lit ? interpolate(s, [0, 1], [0.7, 1]) : 1;
-            return (
-              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, transform: `scale(${scl})` }}>
-                <div style={{ width: 52, height: 52, borderRadius: 10, background: lit ? `${COLORS.brandBlue}18` : "#13162A", border: `1.5px solid ${nodeColor}`, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: lit ? `0 0 12px ${COLORS.brandBlue}44` : "none" }}>
-                  {lit ? (
-                    // Checkmark when received
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                      <path d="M5 11l4 4 8-8" stroke={COLORS.brandBlue} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  ) : (
-                    // CNC machine outline
-                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-                      <rect x="3" y="9" width="16" height="10" rx="2" stroke="#253060" strokeWidth="1.5" />
-                      <rect x="7" y="5" width="4" height="5" rx="1" stroke="#253060" strokeWidth="1.5" />
-                      <line x1="11" y1="5" x2="11" y2="9" stroke="#253060" strokeWidth="1.5" />
-                    </svg>
-                  )}
-                </div>
-                <span style={{ fontSize: 11, color: lit ? COLORS.brandBlue : "#3A4870", fontFamily: '"Inter",sans-serif' }}>
-                  CNC-{String(i + 1).padStart(2, "0")}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+        {/* ── Card 2: AI 分析优化 ── */}
+        <div
+          style={{
+            ...CARD_STYLE,
+            opacity: interpolate(cardS[1], [0, 1], [0, 1]),
+            transform: `translateY(${interpolate(cardS[1], [0, 1], [32, 0])}px)`,
+            borderColor: `${COLORS.accent}55`,
+          }}
+        >
+          {/* Card header */}
+          <div
+            style={{
+              padding: "16px 22px 14px",
+              borderBottom: `1px solid ${COLORS.border}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.accent, boxShadow: `0 0 8px ${COLORS.accent}` }} />
+            <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+              AI 分析优化
+            </span>
+            <span style={{ marginLeft: "auto", fontSize: 20, color: COLORS.accent, fontFamily: '"Inter",sans-serif', opacity: 0.8 }}>
+              智能建议
+            </span>
+          </div>
 
-      {/* Bottom label */}
-      <div style={{ marginTop: 48, opacity: textOpacity, display: "flex", alignItems: "center", gap: 12 }}>
-        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#28C840", boxShadow: "0 0 8px #28C840" }} />
-        <span style={{ fontSize: 22, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
-          工艺程序已同步至全部机床
-        </span>
+          {/* Suggestions */}
+          <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 18, flex: 1, justifyContent: "center" }}>
+            {suggestions.map((sg, i) => {
+              const sgS = spring({ frame: frame - sg.delay, fps, config: { damping: 180 }, durationInFrames: 20 });
+              const sgOpacity = interpolate(sgS, [0, 1], [0, 1]);
+              const sgX = interpolate(sgS, [0, 1], [-20, 0]);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    opacity: sgOpacity,
+                    transform: `translateX(${sgX}px)`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 16,
+                    padding: "16px 18px",
+                    borderRadius: 12,
+                    background: `${COLORS.accent}0A`,
+                    border: `1px solid ${COLORS.accent}28`,
+                  }}
+                >
+                  <div
+                    style={{
+                      flexShrink: 0,
+                      width: 40,
+                      height: 40,
+                      borderRadius: "50%",
+                      background: `${COLORS.accent}22`,
+                      border: `1.5px solid ${COLORS.accent}66`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <span style={{ fontSize: 27, color: COLORS.accent }}>
+                      {["↑", "→", "✓"][i]}
+                    </span>
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontSize: 27, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', lineHeight: 1.3 }}>
+                      {sg.text}
+                    </p>
+                    <p style={{ margin: "4px 0 0", fontSize: 20, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', opacity: 0.75 }}>
+                      {sg.sub}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* Result badge */}
+            <div
+              style={{
+                opacity: badgeOpacity,
+                transform: `scale(${badgeScale})`,
+                marginTop: 4,
+                padding: "10px 16px",
+                borderRadius: 10,
+                background: `${COLORS.accent}15`,
+                border: `1px solid ${COLORS.accent}55`,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}
+            >
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.accent, boxShadow: `0 0 6px ${COLORS.accent}` }} />
+              <span style={{ fontSize: 22, fontWeight: 600, color: COLORS.accent, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+                建议已生成，可一键应用
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Card 3: 工艺文件接口 ── */}
+        <div
+          style={{
+            ...CARD_STYLE,
+            opacity: interpolate(cardS[2], [0, 1], [0, 1]),
+            transform: `translateY(${interpolate(cardS[2], [0, 1], [32, 0])}px)`,
+            borderColor: `${COLORS.cyan}55`,
+          }}
+        >
+          {/* Card header */}
+          <div
+            style={{
+              padding: "16px 22px 14px",
+              borderBottom: `1px solid ${COLORS.border}`,
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+            }}
+          >
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.cyan, boxShadow: `0 0 8px ${COLORS.cyan}` }} />
+            <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+              工艺文件下发
+            </span>
+            <span style={{ marginLeft: "auto", fontSize: 20, color: COLORS.cyan, fontFamily: '"Inter",sans-serif', opacity: 0.8 }}>
+              统一管理
+            </span>
+          </div>
+
+          {/* Distribution SVG */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 22px 18px", gap: 16 }}>
+            <svg width="362" height="220" viewBox="0 0 362 200" fill="none" style={{ width: "100%", maxHeight: 220 }}>
+              {/* Cloud/server node at top center */}
+              <rect x="131" y="8" width="100" height="44" rx="10" fill="#13162A" stroke={COLORS.cyan} strokeWidth="1.5" />
+              <rect x="143" y="18" width="52" height="7" rx="3" fill="#253060" />
+              <rect x="143" y="30" width="38" height="5" rx="2.5" fill="#253060" opacity="0.6" />
+              <circle cx="218" cy="22" r="4" fill={COLORS.cyan} opacity="0.9" />
+              <circle cx="207" cy="22" r="3" fill="#28C840" opacity="0.7" />
+              <text x="181" y="64" textAnchor="middle" fontSize="18" fill={COLORS.textSecondary} fontFamily='"Inter",sans-serif'>蜻蜓平台</text>
+
+              {/* Vertical dashed lines to each machine */}
+              {distMachines.map((x, i) => {
+                const lit = frame >= litFrames[i];
+                const lineColor = lit ? COLORS.cyan : "#253060";
+                return (
+                  <line
+                    key={i}
+                    x1={x} y1="72"
+                    x2={x} y2="152"
+                    stroke={lineColor}
+                    strokeWidth="1.5"
+                    strokeDasharray="5 4"
+                    opacity={lit ? 1 : 0.4}
+                  />
+                );
+              })}
+
+              {/* Connecting horizontal line from server */}
+              <line x1="181" y1="52" x2="181" y2="72" stroke={COLORS.cyan} strokeWidth="1.5" opacity="0.6" />
+              <line x1="52" y1="72" x2="310" y2="72" stroke={COLORS.cyan} strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" />
+
+              {/* Animated packets */}
+              {distMachines.map((x, i) => {
+                if (!packetVisible(i)) return null;
+                const py = packetY(i);
+                return (
+                  <rect
+                    key={i}
+                    x={x - 9}
+                    y={py - 5}
+                    width={18}
+                    height={10}
+                    rx="3"
+                    fill={COLORS.cyan}
+                    opacity="0.9"
+                    style={{ filter: `drop-shadow(0 0 4px ${COLORS.cyan})` }}
+                  />
+                );
+              })}
+
+              {/* CNC machine nodes */}
+              {distMachines.map((x, i) => {
+                const lit = frame >= litFrames[i];
+                const s = lit ? spring({ frame: frame - litFrames[i], fps, config: { damping: 200 }, durationInFrames: 14 }) : 0;
+                const scl = lit ? interpolate(s, [0, 1], [0.6, 1]) : 1;
+                const nodeColor = lit ? COLORS.cyan : "#253060";
+                const nodeOpacity = lit ? 1 : 0.45;
+                return (
+                  <g key={i} transform={`translate(${x}, 178) scale(${scl})`} style={{ transformOrigin: `${x}px 178px` }}>
+                    <rect x="-22" y="-22" width="44" height="44" rx="8"
+                      fill={lit ? `${COLORS.cyan}18` : "#13162A"}
+                      stroke={nodeColor}
+                      strokeWidth="1.5"
+                      opacity={nodeOpacity}
+                      style={{ filter: lit ? `drop-shadow(0 0 8px ${COLORS.cyan}66)` : "none" }}
+                    />
+                    {lit ? (
+                      <path d="-7 0l4.5 4.5 9-9" transform="translate(-7,0)" stroke={COLORS.cyan} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    ) : (
+                      <>
+                        <rect x="-9" y="-1" width="18" height="10" rx="2" stroke="#253060" strokeWidth="1.5" />
+                        <rect x="-5" y="-7" width="4" height="7" rx="1" stroke="#253060" strokeWidth="1.5" />
+                      </>
+                    )}
+                    <text y="30" textAnchor="middle" fontSize="16" fill={lit ? COLORS.cyan : "#3A4870"} fontFamily='"Inter",sans-serif'>
+                      CNC-{String(i + 1).padStart(2, "0")}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* 告别U盘 badge */}
+            <div
+              style={{
+                opacity: finalBadge,
+                transform: `scale(${interpolate(finalBadge, [0, 1], [0.8, 1])})`,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 22px",
+                borderRadius: 22,
+                background: `${COLORS.cyan}14`,
+                border: `1px solid ${COLORS.cyan}55`,
+              }}
+            >
+              <div style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.cyan, boxShadow: `0 0 6px ${COLORS.cyan}` }} />
+              <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.cyan, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+                告别 U 盘逐台导入
+              </span>
+            </div>
+          </div>
+        </div>
+
       </div>
     </AbsoluteFill>
   );
@@ -532,8 +872,8 @@ export const Scene3Capability: React.FC = () => {
       <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={990} premountFor={fps}>
         <Scene3VideoSection />
       </Sequence>
-      <Sequence from={1230} durationInFrames={120} premountFor={fps}>
-        <ProgramDistributeTransition startFrame={0} />
+      <Sequence from={SCENE_VIDEO_OFFSET + 990} durationInFrames={180} premountFor={fps}>
+        <Scene3AnimationSection />
       </Sequence>
     </AbsoluteFill>
   );
