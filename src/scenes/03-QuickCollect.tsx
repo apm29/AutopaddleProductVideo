@@ -280,8 +280,8 @@ const CollectVideoSection: React.FC = () => {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "center",
-        padding: "60px 80px",
-        gap: 80,
+        padding: "60px 60px",
+        gap: 60,
       }}
     >
       {/* Background grid */}
@@ -350,7 +350,7 @@ const CollectVideoSection: React.FC = () => {
       {/* ── Right: framed video with flip exit ── */}
       <div
         style={{
-          flex: "0 0 580px",
+          flex: "0 0 820px",
           opacity: combinedOpacity,
           transform: videoTransform,
           transformOrigin: "center center",
