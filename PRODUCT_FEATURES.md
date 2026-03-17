@@ -1,4 +1,4 @@
-# 蜻蜓助手（QingTing Assistant）产品特点
+# 蜻蜓助手（Autopaddle Assistant）产品特点
 
 ## 核心概念：快装、快采、快用
 

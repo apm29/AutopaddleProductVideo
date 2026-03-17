@@ -130,7 +130,7 @@ export const BrandOutro: React.FC = () => {
               textTransform: "uppercase",
             }}
           >
-            QingTing Assistant
+            Autopaddle Assistant
           </p>
         </div>
       </div>
@@ -208,6 +208,10 @@ export const BrandOutro: React.FC = () => {
             border: `1.5px solid ${COLORS.brandBlue}55`,
             borderRadius: 10,
             padding: "16px 48px",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 10,
           }}
         >
           <span
@@ -219,7 +223,18 @@ export const BrandOutro: React.FC = () => {
               letterSpacing: "0.02em",
             }}
           >
-            autopaddle.com
+            www.autopaddle.com
+          </span>
+          <span
+            style={{
+              fontSize: 28,
+              fontWeight: 500,
+              color: COLORS.accent,
+              fontFamily: '"Inter", "PingFang SC", sans-serif',
+              letterSpacing: "0.06em",
+            }}
+          >
+            400-822-3158
           </span>
         </div>
         <p

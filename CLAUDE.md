@@ -1,4 +1,4 @@
-# 蜻蜓助手（QingTing Assistant）产品目标与特点
+# 蜻蜓助手（Autopaddle Assistant）产品目标与特点
 
 ## 1. 项目目标
 

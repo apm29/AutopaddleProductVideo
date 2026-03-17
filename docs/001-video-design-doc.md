@@ -99,7 +99,7 @@
 
 **字幕**：
 - `蜻蜓助手——工业数据采集平台`
-- `QingTing Assistant — Industrial Data Platform`
+- `Autopaddle Assistant — Industrial Data Platform`
 
 ---
 
