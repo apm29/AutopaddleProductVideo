@@ -9,10 +9,9 @@ import { CaseIntro } from "../scenes/05-CaseIntro";
 import { Scene1Visualization } from "../scenes/06-Scene1-Visualization";
 import { Scene2Alert } from "../scenes/07-Scene2-Alert";
 import { Scene3Efficiency } from "../scenes/08-Scene3-Efficiency";
-import { Scene4Program } from "../scenes/09-Scene4-Program";
 import { BrandOutro } from "../scenes/10-BrandOutro";
 
-// Main composition: 9090 frames = 303s @ 30fps, 1920×1080
+// Main composition
 
 export const QingTingVideo: React.FC = () => {
   const { fps } = useVideoConfig();
@@ -69,7 +68,7 @@ export const QingTingVideo: React.FC = () => {
         from={SCENE_STARTS.SCENE1}
         durationInFrames={SCENE_DURATIONS.SCENE1}
         premountFor={premount}
-        name="06 · 场景一：设备状态可视化"
+        name="06 · 场景一：设备状态管理"
       >
         <Scene1Visualization />
       </Sequence>
@@ -78,7 +77,7 @@ export const QingTingVideo: React.FC = () => {
         from={SCENE_STARTS.SCENE2}
         durationInFrames={SCENE_DURATIONS.SCENE2}
         premountFor={premount}
-        name="07 · 场景二：设备异常预警"
+        name="07 · 场景二：生产数据报表"
       >
         <Scene2Alert />
       </Sequence>
@@ -87,18 +86,9 @@ export const QingTingVideo: React.FC = () => {
         from={SCENE_STARTS.SCENE3}
         durationInFrames={SCENE_DURATIONS.SCENE3}
         premountFor={premount}
-        name="08 · 场景三：生产效率分析"
+        name="08 · 场景三：设备能力深度对接"
       >
         <Scene3Efficiency />
-      </Sequence>
-
-      <Sequence
-        from={SCENE_STARTS.SCENE4}
-        durationInFrames={SCENE_DURATIONS.SCENE4}
-        premountFor={premount}
-        name="09 · 场景四：程序下发"
-      >
-        <Scene4Program />
       </Sequence>
 
       <Sequence

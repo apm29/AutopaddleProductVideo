@@ -700,7 +700,7 @@ export const QuickInstall: React.FC = () => {
       <Sequence durationInFrames={SCENE_VIDEO_OFFSET} premountFor={fps}>
         <TransitionPage
           title="快装"
-          body="办公电脑即可安装部署，无需专用硬件与复杂环境。数据留存企业内网，权限与访问由你掌控，安全合规、可控可管。"
+          body="支持部署在企业内网环境，支持企业私有大模型对接，数据留存企业内网，权限与访问由你掌控，安全合规、可控可管。"
           illustrationNode={<LaptopIllustration />}
         />
       </Sequence>

@@ -18,7 +18,6 @@ export const SCENE_DURATIONS = {
   SCENE1:        TRANSITION_FRAMES + VIDEO_SCENE,           // 1140f 38s
   SCENE2:        TRANSITION_FRAMES + VIDEO_SCENE,
   SCENE3:        TRANSITION_FRAMES + VIDEO_SCENE,
-  SCENE4:        TRANSITION_FRAMES + VIDEO_SCENE,
   BRAND_OUTRO:   300,
 } as const;
 
@@ -32,12 +31,11 @@ export const SCENE_STARTS = {
   SCENE1:        3210 + 180,                // 3390
   SCENE2:        3390 + 1140,               // 4530
   SCENE3:        4530 + 1140,               // 5670
-  SCENE4:        5670 + 1140,               // 6810
-  BRAND_OUTRO:   6810 + 1140,               // 7950
+  BRAND_OUTRO:   5670 + 1140,               // 6810
 } as const;
 
-// Total: 7950 + 300 = 8250f = 275s ≈ 4min 35s
-export const TOTAL_FRAMES = 8250;
+// Total: 6810 + 300 = 7110f = 237s ≈ 3min57s
+export const TOTAL_FRAMES = 7110;
 
 // Within-scene frame offset where video section starts
 export const SCENE_VIDEO_OFFSET = TRANSITION_FRAMES; // 240f
