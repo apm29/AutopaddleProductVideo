@@ -4,15 +4,15 @@ export const FPS = 30;
 const TRANSITION_FRAMES = 240; // 8s — text intro page
 
 // Per-scene video segment durations
-const VIDEO_QUICK_INSTALL = 300;  // 10s — actual video
-const VIDEO_QUICK_COLLECT = 900;  // 30s placeholder
+const VIDEO_QUICK_INSTALL = 300;  // 10s — actual video (setup.mp4)
+const VIDEO_QUICK_COLLECT = 510;  // 17s — actual video (config.mp4)
 const VIDEO_QUICK_USE     = 1350; // 45s placeholder
 const VIDEO_SCENE         = 900;  // 30s placeholder (scenes 1-4)
 
 export const SCENE_DURATIONS = {
   COVER:         180,
   QUICK_INSTALL: TRANSITION_FRAMES + VIDEO_QUICK_INSTALL,   // 540f  18s
-  QUICK_COLLECT: TRANSITION_FRAMES + VIDEO_QUICK_COLLECT,   // 1140f 38s
+  QUICK_COLLECT: TRANSITION_FRAMES + VIDEO_QUICK_COLLECT,   // 750f  25s
   QUICK_USE:     TRANSITION_FRAMES + VIDEO_QUICK_USE,       // 1590f 53s
   CASE_INTRO:    180,
   SCENE1:        TRANSITION_FRAMES + VIDEO_SCENE,           // 1140f 38s
@@ -27,17 +27,17 @@ export const SCENE_STARTS = {
   COVER:         0,
   QUICK_INSTALL: 180,
   QUICK_COLLECT: 180  + 540,                // 720
-  QUICK_USE:     720  + 1140,               // 1860
-  CASE_INTRO:    1860 + 1590,               // 3450
-  SCENE1:        3450 + 180,               // 3630
-  SCENE2:        3630 + 1140,              // 4770
-  SCENE3:        4770 + 1140,              // 5910
-  SCENE4:        5910 + 1140,              // 7050
-  BRAND_OUTRO:   7050 + 1140,              // 8190
+  QUICK_USE:     720  + 750,                // 1470
+  CASE_INTRO:    1470 + 1590,               // 3060
+  SCENE1:        3060 + 180,                // 3240
+  SCENE2:        3240 + 1140,               // 4380
+  SCENE3:        4380 + 1140,               // 5520
+  SCENE4:        5520 + 1140,               // 6660
+  BRAND_OUTRO:   6660 + 1140,               // 7800
 } as const;
 
-// Total: 8190 + 300 = 8490f = 283s ≈ 4min 43s
-export const TOTAL_FRAMES = 8490;
+// Total: 7800 + 300 = 8100f = 270s = 4min 30s
+export const TOTAL_FRAMES = 8100;
 
 // Within-scene frame offset where video section starts
 export const SCENE_VIDEO_OFFSET = TRANSITION_FRAMES; // 240f
