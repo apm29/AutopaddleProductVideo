@@ -543,8 +543,9 @@ const AlertFeaturePage: React.FC = () => {
 
   // Cross-fade helpers: 12-frame fade at boundaries
   const FADE = 12;
+  const OVERLAP = 20; // T1 starts appearing this many frames before SEG1_END
   const seg1Opacity = frame < SEG1_END - FADE ? 1 : interpolate(frame, [SEG1_END - FADE, SEG1_END], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const t1Opacity   = interpolate(frame, [SEG1_END, SEG1_END + FADE, T1_END - FADE, T1_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const t1Opacity   = interpolate(frame, [SEG1_END - OVERLAP, SEG1_END - OVERLAP + FADE, T1_END - FADE, T1_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const seg2Opacity = interpolate(frame, [T1_END, T1_END + FADE, SEG2_END - FADE, SEG2_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const t2Opacity   = interpolate(frame, [SEG2_END, SEG2_END + FADE, T2_END - FADE, T2_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   const seg3Opacity = frame < T2_END + FADE ? interpolate(frame, [T2_END, T2_END + FADE], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
@@ -603,10 +604,10 @@ const AlertFeaturePage: React.FC = () => {
           </div>
         )}
 
-        {/* T1: 配置下发示意 */}
-        {(inT1 || (frame >= SEG1_END - FADE && frame < T1_END + FADE)) && (
+        {/* T1: 配置下发示意 — overlaps with Seg1 by OVERLAP frames */}
+        {(inT1 || (frame >= SEG1_END - OVERLAP && frame < T1_END + FADE)) && (
           <div style={{ position: "absolute", inset: 0, opacity: t1Opacity }}>
-            <ConfigPushTransition startFrame={SEG1_END} />
+            <ConfigPushTransition startFrame={SEG1_END - OVERLAP} />
           </div>
         )}
 

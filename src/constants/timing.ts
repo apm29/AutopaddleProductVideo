@@ -7,7 +7,8 @@ const TRANSITION_FRAMES = 240; // 8s — text intro page
 const VIDEO_QUICK_INSTALL = 300;  // 10s — actual video (setup.mp4)
 const VIDEO_QUICK_COLLECT = 510;  // 17s — actual video (config.mp4)
 const VIDEO_QUICK_USE     = 1500; // 50s — actual video (product-analyze-app-gen.mp4)
-const VIDEO_SCENE         = 900;  // 30s placeholder (scenes 2-3)
+const VIDEO_SCENE2        = 1470; // 49s — actual video (product-analyze-app-gen.mp4)
+const VIDEO_SCENE         = 900;  // 30s placeholder (scene 3)
 
 // Scene 1 alert showcase: desktop 16s + T1 2s + image 4s + T2 2s + mobile 12s = 36s
 const ALERT_SHOWCASE = 1080;
@@ -19,7 +20,7 @@ export const SCENE_DURATIONS = {
   QUICK_USE:     TRANSITION_FRAMES + VIDEO_QUICK_USE,       // 1740f 58s
   CASE_INTRO:    180,
   SCENE1:        TRANSITION_FRAMES + ALERT_SHOWCASE,        // 1320f 44s
-  SCENE2:        TRANSITION_FRAMES + VIDEO_SCENE,           // 1140f 38s
+  SCENE2:        TRANSITION_FRAMES + VIDEO_SCENE2,          // 1710f 57s
   SCENE3:        TRANSITION_FRAMES + VIDEO_SCENE,           // 1140f 38s
   BRAND_OUTRO:   300,
 } as const;
@@ -33,12 +34,12 @@ export const SCENE_STARTS = {
   CASE_INTRO:    1470 + 1740,               // 3210
   SCENE1:        3210 + 180,                // 3390
   SCENE2:        3390 + 1320,               // 4710
-  SCENE3:        4710 + 1140,               // 5850
-  BRAND_OUTRO:   5850 + 1140,               // 6990
+  SCENE3:        4710 + 1710,               // 6420
+  BRAND_OUTRO:   6420 + 1140,               // 7560
 } as const;
 
-// Total: 6990 + 300 = 7290f = 243s ≈ 4min03s
-export const TOTAL_FRAMES = 7290;
+// Total: 7560 + 300 = 7860f = 262s ≈ 4min22s
+export const TOTAL_FRAMES = 7860;
 
 // Within-scene frame offset where video section starts
 export const SCENE_VIDEO_OFFSET = TRANSITION_FRAMES; // 240f
