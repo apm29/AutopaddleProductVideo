@@ -1,6 +1,7 @@
 import {
   AbsoluteFill,
   Easing,
+  Img,
   OffthreadVideo,
   Sequence,
   interpolate,
@@ -376,26 +377,29 @@ const InstallVideoSection: React.FC = () => {
   const { fps } = useVideoConfig();
 
   const VIDEO_DURATION = 300; // 10s
-  const EXIT_START = 255;     // flip begins at ~8.5s, lasts 45f (1.5s)
+  const EXIT_START = 200;     // flip begins at ~6.7s
+  const FLIP_MID = 225;       // midpoint: video exits, screenshot enters (login shows 75f = 2.5s)
 
   // --- Entrance ---
   const enterSpring = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 25 });
   const entranceScale   = interpolate(enterSpring, [0, 1], [0.92, 1]);
   const entranceOpacity = enterSpring;
 
-  // --- Flip exit (rotateY 0 → 90deg) ---
-  const flipAngle = interpolate(frame, [EXIT_START, VIDEO_DURATION], [0, 90], {
+  // --- Video: flip 0→90° (first half) ---
+  const videoFlipAngle = interpolate(frame, [EXIT_START, FLIP_MID], [0, 90], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.in(Easing.quad),
   });
-  const exitOpacity = interpolate(frame, [EXIT_START + 10, VIDEO_DURATION - 5], [1, 0], {
+  const videoTransform = `perspective(1000px) scale(${entranceScale}) rotateY(${videoFlipAngle}deg)`;
+
+  // --- Screenshot: flip -90→0° (second half) ---
+  const screenshotFlipAngle = interpolate(frame, [FLIP_MID, VIDEO_DURATION], [-90, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
   });
-
-  const combinedOpacity = entranceOpacity * exitOpacity;
-  const videoTransform  = `perspective(1000px) scale(${entranceScale}) rotateY(${flipAngle}deg)`;
+  const screenshotTransform = `perspective(1000px) scale(${entranceScale}) rotateY(${screenshotFlipAngle}deg)`;
 
   // --- Glow pulse ---
   const glowPulse = interpolate(
@@ -497,123 +501,191 @@ const InstallVideoSection: React.FC = () => {
         ))}
       </div>
 
-      {/* ── Right: framed video (smaller, with flip exit) ── */}
+      {/* ── Right: card-flip wrapper ── */}
       <div
         style={{
           flex: "0 0 580px",
-          opacity: combinedOpacity,
-          transform: videoTransform,
-          transformOrigin: "center center",
-          zIndex: 1,
           position: "relative",
+          zIndex: 1,
         }}
       >
-        {/* Glow halo — bigger spread + stronger pulse */}
+        {/* ── Video card (flips out 0→90°) ── */}
         <div
           style={{
-            position: "absolute",
-            inset: -60,
-            borderRadius: 32,
-            background: `${COLORS.brandBlue}${Math.round(glowPulse * 255).toString(16).padStart(2, "0")}`,
-            filter: "blur(72px)",
-          }}
-        />
-        {/* Secondary outer ring glow */}
-        <div
-          style={{
-            position: "absolute",
-            inset: -90,
-            borderRadius: 40,
-            background: `${COLORS.accent}${Math.round(glowPulse * 0.35 * 255).toString(16).padStart(2, "0")}`,
-            filter: "blur(90px)",
-          }}
-        />
-
-        {/* Window frame */}
-        <div
-          style={{
-            position: "relative",
-            borderRadius: 14,
-            overflow: "hidden",
-            border: `1.5px solid ${COLORS.brandBlue}55`,
-            boxShadow: `0 0 0 1px ${COLORS.border}, 0 32px 64px rgba(0,0,0,0.6)`,
+            opacity: entranceOpacity,
+            transform: videoTransform,
+            transformOrigin: "center center",
           }}
         >
-          {/* Chrome bar */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 18px",
-              background: "#0A0A12",
-              borderBottom: `1px solid ${COLORS.border}`,
-            }}
-          >
-            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
-            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FFBD2E" }} />
-            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C940" }} />
-            <span
-              style={{
-                marginLeft: 12,
-                fontSize: 13,
-                color: COLORS.textSecondary,
-                fontFamily: '"Inter", sans-serif',
-                opacity: 0.6,
-              }}
-            >
-              蜻蜓工业助手 安装向导
-            </span>
-          </div>
-
-          {/* Video */}
-          <OffthreadVideo
-            src={staticFile("videos/setup.mp4")}
-            style={{ width: "100%", display: "block" }}
-          />
-
-          {/* Progress bar */}
+          {/* Glow halo */}
           <div
             style={{
               position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              background: COLORS.border,
+              inset: -60,
+              borderRadius: 32,
+              background: `${COLORS.brandBlue}${Math.round(glowPulse * 255).toString(16).padStart(2, "00")}`,
+              filter: "blur(72px)",
+            }}
+          />
+          {/* Secondary outer ring glow */}
+          <div
+            style={{
+              position: "absolute",
+              inset: -90,
+              borderRadius: 40,
+              background: `${COLORS.accent}${Math.round(glowPulse * 0.35 * 255).toString(16).padStart(2, "00")}`,
+              filter: "blur(90px)",
+            }}
+          />
+          {/* Window frame */}
+          <div
+            style={{
+              position: "relative",
+              borderRadius: 14,
+              overflow: "hidden",
+              border: `1.5px solid ${COLORS.brandBlue}55`,
+              boxShadow: `0 0 0 1px ${COLORS.border}, 0 32px 64px rgba(0,0,0,0.6)`,
             }}
           >
+            {/* Chrome bar */}
             <div
               style={{
-                height: "100%",
-                width: `${progress}%`,
-                background: `linear-gradient(90deg, ${COLORS.brandBlue}, ${COLORS.accent})`,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                background: "#0A0A12",
+                borderBottom: `1px solid ${COLORS.border}`,
               }}
+            >
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FFBD2E" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C940" }} />
+              <span
+                style={{
+                  marginLeft: 12,
+                  fontSize: 13,
+                  color: COLORS.textSecondary,
+                  fontFamily: '"Inter", sans-serif',
+                  opacity: 0.6,
+                }}
+              >
+                蜻蜓工业助手 安装向导
+              </span>
+            </div>
+            {/* Video */}
+            <OffthreadVideo
+              src={staticFile("videos/setup.mp4")}
+              style={{ width: "100%", display: "block" }}
             />
+            {/* Progress bar */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background: COLORS.border,
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${progress}%`,
+                  background: `linear-gradient(90deg, ${COLORS.brandBlue}, ${COLORS.accent})`,
+                }}
+              />
+            </div>
+          </div>
+          {/* Version badge */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 20,
+              right: 16,
+              background: `${COLORS.bgPrimary}CC`,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 6,
+              padding: "4px 12px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 14,
+                color: COLORS.textSecondary,
+                fontFamily: '"Inter", monospace',
+              }}
+            >
+              v1.5.3
+            </span>
           </div>
         </div>
 
-        {/* Version badge */}
+        {/* ── Screenshot card (flips in -90→0°) ── */}
         <div
           style={{
             position: "absolute",
-            bottom: 20,
-            right: 16,
-            background: `${COLORS.bgPrimary}CC`,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 6,
-            padding: "4px 12px",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            transform: screenshotTransform,
+            transformOrigin: "center center",
           }}
         >
-          <span
+          {/* Glow halo */}
+          <div
             style={{
-              fontSize: 14,
-              color: COLORS.textSecondary,
-              fontFamily: '"Inter", monospace',
+              position: "absolute",
+              inset: -60,
+              borderRadius: 32,
+              background: `${COLORS.brandBlue}${Math.round(glowPulse * 255).toString(16).padStart(2, "00")}`,
+              filter: "blur(72px)",
+            }}
+          />
+          {/* Window frame */}
+          <div
+            style={{
+              position: "relative",
+              borderRadius: 14,
+              overflow: "hidden",
+              border: `1.5px solid ${COLORS.brandBlue}55`,
+              boxShadow: `0 0 0 1px ${COLORS.border}, 0 32px 64px rgba(0,0,0,0.6)`,
             }}
           >
-            v1.5.3
-          </span>
+            {/* Chrome bar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                background: "#0A0A12",
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}
+            >
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FFBD2E" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C940" }} />
+              <span
+                style={{
+                  marginLeft: 12,
+                  fontSize: 13,
+                  color: COLORS.textSecondary,
+                  fontFamily: '"Inter", sans-serif',
+                  opacity: 0.6,
+                }}
+              >
+                蜻蜓工业助手
+              </span>
+            </div>
+            {/* Login screenshot */}
+            <Img
+              src={staticFile("screenshots/install-04-login.png")}
+              style={{ width: "100%", display: "block" }}
+            />
+          </div>
         </div>
       </div>
     </AbsoluteFill>
