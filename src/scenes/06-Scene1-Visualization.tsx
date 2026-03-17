@@ -224,10 +224,306 @@ const FEATURE_CARDS = [
   },
 ] as const;
 
-// Timing for sequential display within ALERT_DISPLAY_FRAMES (960f)
+// Timing for sequential display within ALERT_DISPLAY_FRAMES (1080f)
 const SEG1_END = 480; // 0–479   alert-config video (16s)
-const SEG2_END = 600; // 480–599 alert image (4s)
-// SEG3 runs from SEG2_END to ALERT_DISPLAY_FRAMES (600–959, 12s)
+const T1_END   = 540; // 480–539 config-push transition (2s)
+const SEG2_END = 660; // 540–659 alert image (4s)
+const T2_END   = 720; // 660–719 wechat notification transition (2s)
+// Seg3: T2_END–1079 alert-process video (12s)
+
+// ── T1: 报警配置下发示意 ─────────────────────────────────────────────────────
+
+const ConfigPushTransition: React.FC<{ startFrame: number }> = ({ startFrame }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const f = frame - startFrame; // local frame 0–59
+
+  // Server spring
+  const serverS = spring({ frame: f, fps, config: { damping: 180 }, durationInFrames: 18 });
+  const serverOpacity = interpolate(serverS, [0, 1], [0, 1]);
+  const serverScale   = interpolate(serverS, [0, 1], [0.8, 1]);
+
+  // Data packets travel left→right along each of the 3 lines
+  // packet x: -5% → 105%  over f 10–32
+  const packetX = (offset: number) =>
+    interpolate(f - offset, [0, 22], [-5, 105], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // Devices light up with stagger
+  const deviceLit = (i: number) => f >= 18 + i * 5;
+  const deviceS   = (i: number) =>
+    spring({ frame: f - (18 + i * 5), fps, config: { damping: 200 }, durationInFrames: 14 });
+
+  // Bottom text fade
+  const textOpacity = interpolate(f, [24, 36], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // Fade in/out for the whole component (handled by parent opacity)
+  const DEVICES = 6;
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.bgPrimary, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 0 }}>
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 45%, ${COLORS.brandBlue}10 0%, transparent 60%)` }} />
+
+      {/* ── Diagram ── */}
+      <div style={{ width: 900, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0 }}>
+
+        {/* Server block */}
+        <div style={{
+          opacity: serverOpacity,
+          transform: `scale(${serverScale})`,
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 10,
+        }}>
+          <svg width="96" height="108" viewBox="0 0 96 108" fill="none">
+            {/* Three server slabs */}
+            {[0, 36, 72].map((y) => (
+              <g key={y}>
+                <rect x="4" y={y} width="88" height="28" rx="6" fill="#1A2040" stroke={COLORS.brandBlue} strokeWidth="1.5" />
+                <rect x="12" y={y + 8} width="48" height="6" rx="3" fill="#253060" />
+                <circle cx="78" cy={y + 11} r="4" fill={COLORS.brandBlue} opacity="0.9" />
+                <circle cx="68" cy={y + 11} r="3" fill="#28C840" opacity="0.7" />
+              </g>
+            ))}
+          </svg>
+          <span style={{ fontSize: 16, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', fontWeight: 600 }}>
+            蜻蜓平台
+          </span>
+        </div>
+
+        {/* Arrow + packets channel */}
+        <div style={{ flex: 1, position: "relative", height: 108 }}>
+          {/* Three horizontal dashed lines */}
+          {[24, 54, 84].map((y) => (
+            <div key={y} style={{ position: "absolute", top: y - 1, left: 0, right: 0, height: 2, background: `repeating-linear-gradient(90deg, ${COLORS.brandBlue}55 0px, ${COLORS.brandBlue}55 8px, transparent 8px, transparent 16px)` }} />
+          ))}
+          {/* Animated packets on each line */}
+          {[0, 4, 8].map((offset, li) => {
+            const px = packetX(10 + offset);
+            const inRange = px > -5 && px < 105;
+            return inRange ? (
+              <div key={li} style={{
+                position: "absolute",
+                top: [17, 47, 77][li],
+                left: `${px}%`,
+                width: 18, height: 10,
+                background: COLORS.brandBlue,
+                borderRadius: 3,
+                boxShadow: `0 0 8px ${COLORS.brandBlue}`,
+                transform: "translateX(-50%)",
+              }} />
+            ) : null;
+          })}
+          {/* Arrow head at right */}
+          <div style={{ position: "absolute", right: 0, top: "50%", transform: "translateY(-50%)" }}>
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <path d="M4 10h12M12 5l6 5-6 5" stroke={COLORS.brandBlue} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+        </div>
+
+        {/* Device nodes grid */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16,
+          opacity: serverOpacity,
+        }}>
+          {Array.from({ length: DEVICES }, (_, i) => {
+            const lit = deviceLit(i);
+            const s   = lit ? deviceS(i) : 0;
+            const nodeColor = lit ? COLORS.cyan : "#253060";
+            const scl = lit ? interpolate(s, [0, 1], [0.7, 1]) : 1;
+            return (
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, transform: `scale(${scl})` }}>
+                <div style={{
+                  width: 52, height: 52,
+                  borderRadius: 10,
+                  background: lit ? `${COLORS.cyan}18` : "#13162A",
+                  border: `1.5px solid ${nodeColor}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: lit ? `0 0 12px ${COLORS.cyan}44` : "none",
+                }}>
+                  {lit ? (
+                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                      <path d="M5 11l4 4 8-8" stroke={COLORS.cyan} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  ) : (
+                    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                      <rect x="3" y="7" width="16" height="10" rx="3" stroke="#253060" strokeWidth="1.5" />
+                      <rect x="7" y="3" width="8" height="5" rx="2" stroke="#253060" strokeWidth="1.5" />
+                    </svg>
+                  )}
+                </div>
+                <span style={{ fontSize: 11, color: lit ? COLORS.cyan : "#3A4870", fontFamily: '"Inter",sans-serif' }}>
+                  #{String(i + 1).padStart(2, "0")}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Bottom label */}
+      <div style={{ marginTop: 48, opacity: textOpacity, display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#28C840", boxShadow: "0 0 8px #28C840" }} />
+        <span style={{ fontSize: 22, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+          报警规则已同步至全部在线设备
+        </span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── T2: 微信通知弹出 + 点击过渡 ─────────────────────────────────────────────
+
+const WechatNotificationTransition: React.FC<{ startFrame: number }> = ({ startFrame }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const f = frame - startFrame; // local frame 0–59
+
+  // Phone slides in from slight offset
+  const phoneS = spring({ frame: f, fps, config: { damping: 180 }, durationInFrames: 20 });
+  const phoneY = interpolate(phoneS, [0, 1], [40, 0]);
+  const phoneOpacity = interpolate(phoneS, [0, 1], [0, 1]);
+
+  // Notification card slides down from top of phone
+  const cardS = spring({ frame: f - 12, fps, config: { damping: 160 }, durationInFrames: 20 });
+  const cardY = interpolate(cardS, [0, 1], [-80, 0]);
+  const cardOpacity = interpolate(cardS, [0, 1], [0, 1]);
+
+  // Notification text fade in
+  const textOpacity = interpolate(f, [22, 34], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // Finger appears and clicks
+  const fingerS = spring({ frame: f - 38, fps, config: { damping: 200 }, durationInFrames: 14 });
+  const fingerX = interpolate(fingerS, [0, 1], [60, 0]);
+  const fingerOpacity = interpolate(fingerS, [0, 1], [0, 1]);
+
+  // Click pulse: at f=48, scale bounces
+  const clickScale = interpolate(f, [48, 51, 55], [1, 0.82, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const rippleScale = interpolate(f, [48, 58], [0.3, 2.2], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const rippleOpacity = interpolate(f, [48, 58], [0.6, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  return (
+    <AbsoluteFill style={{ backgroundColor: COLORS.bgPrimary, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 45%, ${COLORS.cyan}08 0%, transparent 60%)` }} />
+
+      {/* Phone shell */}
+      <div style={{
+        position: "relative",
+        opacity: phoneOpacity,
+        transform: `translateY(${phoneY}px)`,
+        width: 300,
+        height: 560,
+        padding: "14px 10px",
+        background: "linear-gradient(160deg,#1E2235 0%,#13151F 100%)",
+        borderRadius: 36,
+        border: `1.5px solid ${COLORS.border}`,
+        boxShadow: `0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px ${COLORS.cyan}22, inset 0 1px 0 rgba(255,255,255,0.06)`,
+        display: "flex", flexDirection: "column",
+        overflow: "hidden",
+      }}>
+        {/* Notch */}
+        <div style={{ position: "absolute", top: 14, left: "50%", transform: "translateX(-50%)", width: 72, height: 20, background: "#0D0F1A", borderRadius: "0 0 14px 14px", zIndex: 4 }} />
+
+        {/* Status bar */}
+        <div style={{ height: 28, flexShrink: 0, display: "flex", alignItems: "flex-end", justifyContent: "space-between", padding: "0 16px 4px", zIndex: 3 }}>
+          <span style={{ fontSize: 11, color: "#8899BB", fontFamily: '"Inter",monospace' }}>9:41</span>
+          <div style={{ display: "flex", gap: 5, alignItems: "center" }}>
+            {[3, 5, 7, 9].map((h) => <div key={h} style={{ width: 3, height: h, background: "#8899BB", borderRadius: 1 }} />)}
+          </div>
+        </div>
+
+        {/* Home screen mock — blurred grid of app icons */}
+        <div style={{
+          flex: 1, display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, padding: "12px 8px",
+          alignContent: "start",
+        }}>
+          {Array.from({ length: 16 }, (_, i) => (
+            <div key={i} style={{ width: "100%", aspectRatio: "1", borderRadius: 14, background: ["#1A2A5E","#1C3A2A","#2A1A1A","#1A2A3A"][i % 4], opacity: 0.6 }} />
+          ))}
+        </div>
+
+        {/* WeChat notification banner — slides in */}
+        <div style={{
+          position: "absolute",
+          top: 52, left: 10, right: 10,
+          opacity: cardOpacity,
+          transform: `translateY(${cardY}px)`,
+          background: "rgba(30,34,56,0.96)",
+          backdropFilter: "blur(12px)",
+          borderRadius: 14,
+          border: `1px solid rgba(255,255,255,0.1)`,
+          boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+          padding: "12px 14px",
+          display: "flex", gap: 12, alignItems: "flex-start",
+          zIndex: 5,
+        }}>
+          {/* WeChat icon */}
+          <div style={{ width: 40, height: 40, borderRadius: 10, background: "#07C160", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <ellipse cx="8" cy="9" rx="6" ry="5" fill="white" />
+              <ellipse cx="15" cy="12" rx="5.5" ry="4.5" fill="white" opacity="0.9" />
+              <circle cx="6" cy="9" r="1.4" fill="#07C160" />
+              <circle cx="9.5" cy="9" r="1.4" fill="#07C160" />
+              <circle cx="13.5" cy="12" r="1.2" fill="#07C160" />
+              <circle cx="16.5" cy="12" r="1.2" fill="#07C160" />
+            </svg>
+          </div>
+          <div style={{ flex: 1, opacity: textOpacity }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: "#E8EDF5", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+                蜻蜓工业助手
+              </span>
+              <span style={{ fontSize: 11, color: "#6A7A9A", fontFamily: '"Inter",sans-serif' }}>
+                刚刚
+              </span>
+            </div>
+            <p style={{ margin: 0, fontSize: 12, color: "#FF6060", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', fontWeight: 600 }}>
+              ⚠️ 报警触发
+            </p>
+            <p style={{ margin: "2px 0 0", fontSize: 12, color: "#9AAABB", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+              #03号 三菱机床：主轴过载，请及时处理
+            </p>
+          </div>
+        </div>
+
+        {/* Home bar */}
+        <div style={{ display: "flex", justifyContent: "center", padding: "8px 0", flexShrink: 0 }}>
+          <div style={{ width: 60, height: 4, borderRadius: 2, background: "#3A4870" }} />
+        </div>
+      </div>
+
+      {/* Finger cursor */}
+      <div style={{
+        position: "absolute",
+        // Positioned to tap the notification card
+        top: "calc(50% - 200px)",
+        left: "calc(50% + 60px)",
+        opacity: fingerOpacity,
+        transform: `translateX(${fingerX}px) scale(${clickScale})`,
+        zIndex: 10,
+      }}>
+        {/* Ripple */}
+        {f >= 48 && (
+          <div style={{
+            position: "absolute",
+            top: "50%", left: "50%",
+            width: 40, height: 40,
+            marginLeft: -20, marginTop: -20,
+            borderRadius: "50%",
+            border: `2px solid ${COLORS.cyan}`,
+            opacity: rippleOpacity,
+            transform: `scale(${rippleScale})`,
+          }} />
+        )}
+        {/* Finger SVG */}
+        <svg width="36" height="48" viewBox="0 0 36 48" fill="none">
+          <path d="M18 44 C10 44 6 38 6 30 L6 18 C6 15 8 13 11 13 C12 13 13 13.5 14 14.5 L14 8 C14 5.5 16 4 18 4 C20 4 22 5.5 22 8 L22 14.5 C23 13.5 24 13 25 13 C28 13 30 15 30 18 L30 30 C30 38 26 44 18 44Z" fill="white" stroke="#D0D8E8" strokeWidth="1" />
+          <circle cx="18" cy="8" r="2" fill="#C0C8D8" />
+        </svg>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+// ── Alert feature page ───────────────────────────────────────────────────────
 
 const AlertFeaturePage: React.FC = () => {
   const frame = useCurrentFrame();
@@ -240,28 +536,31 @@ const AlertFeaturePage: React.FC = () => {
 
   // Which segment are we in?
   const inSeg1 = frame < SEG1_END;
-  const inSeg2 = frame >= SEG1_END && frame < SEG2_END;
-  const inSeg3 = frame >= SEG2_END;
+  const inT1   = frame >= SEG1_END && frame < T1_END;
+  const inSeg2 = frame >= T1_END   && frame < SEG2_END;
+  const inT2   = frame >= SEG2_END && frame < T2_END;
+  const inSeg3 = frame >= T2_END;
 
-  // Cross-fade helpers: 12-frame fade at segment boundaries
+  // Cross-fade helpers: 12-frame fade at boundaries
   const FADE = 12;
   const seg1Opacity = frame < SEG1_END - FADE ? 1 : interpolate(frame, [SEG1_END - FADE, SEG1_END], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const seg2Opacity = interpolate(frame, [SEG1_END, SEG1_END + FADE, SEG2_END - FADE, SEG2_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const seg3Opacity = frame < SEG2_END + FADE ? interpolate(frame, [SEG2_END, SEG2_END + FADE], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
+  const t1Opacity   = interpolate(frame, [SEG1_END, SEG1_END + FADE, T1_END - FADE, T1_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const seg2Opacity = interpolate(frame, [T1_END, T1_END + FADE, SEG2_END - FADE, SEG2_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const t2Opacity   = interpolate(frame, [SEG2_END, SEG2_END + FADE, T2_END - FADE, T2_END], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const seg3Opacity = frame < T2_END + FADE ? interpolate(frame, [T2_END, T2_END + FADE], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) : 1;
 
   // Alert image pulse: red border + flash overlay
-  const alertPulse = Math.sin(((frame - SEG1_END) / fps) * Math.PI * 3); // ~1.5 Hz
+  const alertPulse = Math.sin(((frame - T1_END) / fps) * Math.PI * 3);
   const alertBorderOpacity = interpolate(alertPulse, [-1, 1], [0.4, 1]);
   const alertFlash = interpolate(alertPulse, [-1, 1], [0, 0.08]);
-  // "报警" badge blink
   const badgeBlink = alertPulse > 0 ? 1 : 0.25;
 
-  // Entry spring for each segment (local to its segment start)
+  // Entry spring for video segments
   const seg1Spring = spring({ frame, fps, config: { damping: 180 }, durationInFrames: 28 });
-  const seg2Spring = spring({ frame: frame - SEG1_END, fps, config: { damping: 180 }, durationInFrames: 28 });
-  const seg3Spring = spring({ frame: frame - SEG2_END, fps, config: { damping: 180 }, durationInFrames: 28 });
+  const seg2Spring = spring({ frame: frame - T1_END, fps, config: { damping: 180 }, durationInFrames: 28 });
+  const seg3Spring = spring({ frame: frame - T2_END, fps, config: { damping: 180 }, durationInFrames: 28 });
 
-  const entryY  = (s: number) => interpolate(s, [0, 1], [28, 0]);
+  const entryY   = (s: number) => interpolate(s, [0, 1], [28, 0]);
   const entryScl = (s: number) => interpolate(s, [0, 1], [0.95, 1]);
 
   return (
@@ -285,7 +584,6 @@ const AlertFeaturePage: React.FC = () => {
               boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
             }}
           >
-            {/* Chrome bar */}
             <div style={{ flexShrink: 0, height: 34, background: "#1A1D2E", display: "flex", alignItems: "center", padding: "0 14px", gap: 7, borderBottom: "1px solid #2A3060" }}>
               {["#FF5F57","#FEBC2E","#28C840"].map((c) => (
                 <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
@@ -295,7 +593,6 @@ const AlertFeaturePage: React.FC = () => {
               </div>
             </div>
             <div style={{ flex: 1, overflow: "hidden", background: "#000" }}>
-              {/* Sequence resets frame to 0 so video plays from beginning */}
               <Sequence durationInFrames={SEG1_END + FADE}>
                 <OffthreadVideo
                   src={staticFile("videos/alert-config.mp4")}
@@ -306,8 +603,15 @@ const AlertFeaturePage: React.FC = () => {
           </div>
         )}
 
-        {/* Segment 2: factory-device-alert.jpg with alert effects */}
-        {inSeg2 && (
+        {/* T1: 配置下发示意 */}
+        {(inT1 || (frame >= SEG1_END - FADE && frame < T1_END + FADE)) && (
+          <div style={{ position: "absolute", inset: 0, opacity: t1Opacity }}>
+            <ConfigPushTransition startFrame={SEG1_END} />
+          </div>
+        )}
+
+        {/* Segment 2: factory-device-alert.jpg */}
+        {(inSeg2 || (frame >= T1_END - FADE && frame < SEG2_END + FADE)) && (
           <div
             style={{
               position: "absolute", inset: 0,
@@ -318,52 +622,31 @@ const AlertFeaturePage: React.FC = () => {
               boxShadow: `0 0 32px rgba(255,60,60,${alertBorderOpacity * 0.5}), 0 16px 48px rgba(0,0,0,0.5)`,
             }}
           >
-            <Img
-              src={staticFile("screenshots/factory-device-alert.jpg")}
-              style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }}
-            />
-            {/* Red flash overlay */}
+            <Img src={staticFile("screenshots/factory-device-alert.jpg")} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
             <div style={{ position: "absolute", inset: 0, background: `rgba(255,40,40,${alertFlash})`, pointerEvents: "none" }} />
-            {/* Scanline overlay */}
-            <div style={{
-              position: "absolute", inset: 0, pointerEvents: "none",
-              backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px)",
-            }} />
-            {/* "报警" blinking badge top-right */}
-            <div style={{
-              position: "absolute", top: 16, right: 16,
-              background: "rgba(220,30,30,0.9)", borderRadius: 6,
-              padding: "6px 16px", display: "flex", alignItems: "center", gap: 8,
-              opacity: badgeBlink,
-              boxShadow: "0 0 12px rgba(255,50,50,0.6)",
-            }}>
+            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px)" }} />
+            <div style={{ position: "absolute", top: 16, right: 16, background: "rgba(220,30,30,0.9)", borderRadius: 6, padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, opacity: badgeBlink, boxShadow: "0 0 12px rgba(255,50,50,0.6)" }}>
               <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', letterSpacing: "0.05em" }}>
-                报警触发中
-              </span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', letterSpacing: "0.05em" }}>报警触发中</span>
             </div>
-            {/* Bottom label bar */}
-            <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0,
-              background: "linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%)",
-              padding: "24px 28px 20px",
-              display: "flex", alignItems: "flex-end", gap: 14,
-            }}>
-              {/* Alert icon */}
+            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%)", padding: "24px 28px 20px", display: "flex", alignItems: "flex-end", gap: 14 }}>
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                 <path d="M16 4L30 28H2L16 4Z" stroke="#FF4444" strokeWidth="2" strokeLinejoin="round" fill="rgba(255,68,68,0.15)" />
                 <line x1="16" y1="13" x2="16" y2="21" stroke="#FF4444" strokeWidth="2.2" strokeLinecap="round" />
                 <circle cx="16" cy="24.5" r="1.4" fill="#FF4444" />
               </svg>
               <div>
-                <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#FF6060", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', letterSpacing: "0.02em" }}>
-                  设备报警触发
-                </p>
-                <p style={{ margin: "4px 0 0", fontSize: 15, color: "rgba(255,255,255,0.7)", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
-                  系统已自动推送通知至管理人员手机
-                </p>
+                <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#FF6060", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>设备报警触发</p>
+                <p style={{ margin: "4px 0 0", fontSize: 15, color: "rgba(255,255,255,0.7)", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>系统已自动推送通知至管理人员手机</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* T2: 微信通知过渡 */}
+        {(inT2 || (frame >= SEG2_END - FADE && frame < T2_END + FADE)) && (
+          <div style={{ position: "absolute", inset: 0, opacity: t2Opacity }}>
+            <WechatNotificationTransition startFrame={SEG2_END} />
           </div>
         )}
 
@@ -377,11 +660,8 @@ const AlertFeaturePage: React.FC = () => {
               display: "flex", alignItems: "center", justifyContent: "center",
             }}
           >
-            {/* Phone shell */}
             <div style={{
-              position: "relative",
-              height: "100%",
-              aspectRatio: "9/21",
+              position: "relative", height: "100%", aspectRatio: "9/21",
               padding: "12px 8px",
               background: "linear-gradient(160deg,#1E2235 0%,#13151F 100%)",
               borderRadius: 28,
@@ -389,12 +669,11 @@ const AlertFeaturePage: React.FC = () => {
               boxShadow: `0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px ${COLORS.cyan}22, inset 0 1px 0 rgba(255,255,255,0.05)`,
               display: "flex", flexDirection: "column",
             }}>
-              {/* Notch */}
               <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", width: 52, height: 16, background: "#0D0F1A", borderRadius: "0 0 10px 10px", zIndex: 2 }} />
               <div style={{ height: 10, flexShrink: 0 }} />
               <div style={{ flex: 1, borderRadius: 16, overflow: "hidden", background: "#000" }}>
-                {/* Sequence from={SEG2_END} resets frame to 0 when seg3 starts */}
-                <Sequence from={SEG2_END}>
+                {/* from={T2_END} resets frame so video plays from 0 */}
+                <Sequence from={T2_END}>
                   <OffthreadVideo
                     src={staticFile("videos/alert-process.mp4")}
                     style={{ width: "100%", height: "100%", objectFit: "cover" }}
@@ -404,7 +683,6 @@ const AlertFeaturePage: React.FC = () => {
               <div style={{ display: "flex", justifyContent: "center", marginTop: 8, flexShrink: 0 }}>
                 <div style={{ width: 40, height: 3, borderRadius: 2, background: "#5A6A9044" }} />
               </div>
-              {/* Cyan ring */}
               <div style={{ position: "absolute", inset: -1, borderRadius: 29, border: `1.5px solid ${COLORS.cyan}55`, pointerEvents: "none" }} />
             </div>
           </div>
@@ -412,10 +690,7 @@ const AlertFeaturePage: React.FC = () => {
       </div>
 
       {/* ── Bottom cards — always visible ── */}
-      <div style={{
-        position: "absolute", bottom: 44, left: 100, right: 100,
-        display: "flex", gap: 28,
-      }}>
+      <div style={{ position: "absolute", bottom: 44, left: 100, right: 100, display: "flex", gap: 28 }}>
         {FEATURE_CARDS.map((card, i) => (
           <div
             key={card.title}
