@@ -6,6 +6,7 @@ const TRANSITION_FRAMES = 240; // 8s — text intro page
 // Per-scene video segment durations
 const VIDEO_QUICK_INSTALL   = 300;  // 10s — actual video (setup.mp4)
 const VIDEO_QUICK_COLLECT   = 510;  // 17s — actual video (config.mp4)
+const SCREENSHOT_QUICK_COLLECT = 210; // 7s  — device-config screenshot showcase
 const VIDEO_QUICK_USE       = 1500; // 50s — actual video (product-analyze-app-gen.mp4)
 const VIDEO_DEVICE_MONITOR  = 1470; // 49s — actual video (device-monitor-app-gen.mp4, Scene 1)
 const VIDEO_SCENE2          = 1470; // 49s — actual video (product-analyze-app-gen.mp4)
@@ -19,7 +20,7 @@ const ALERT_SHOWCASE = 1080;
 export const SCENE_DURATIONS = {
   COVER:         180,
   QUICK_INSTALL: TRANSITION_FRAMES + VIDEO_QUICK_INSTALL,                          // 540f  18s
-  QUICK_COLLECT: TRANSITION_FRAMES + VIDEO_QUICK_COLLECT,                          // 750f  25s
+  QUICK_COLLECT: TRANSITION_FRAMES + VIDEO_QUICK_COLLECT + SCREENSHOT_QUICK_COLLECT, // 960f  32s
   QUICK_USE:     TRANSITION_FRAMES + VIDEO_QUICK_USE,                              // 1740f 58s
   CASE_INTRO:    180,
   SCENE1:        TRANSITION_FRAMES + VIDEO_DEVICE_MONITOR + ALERT_SHOWCASE,        // 2790f 93s
@@ -33,16 +34,16 @@ export const SCENE_STARTS = {
   COVER:         0,
   QUICK_INSTALL: 180,
   QUICK_COLLECT: 180  + 540,                // 720
-  QUICK_USE:     720  + 750,                // 1470
-  CASE_INTRO:    1470 + 1740,               // 3210
-  SCENE1:        3210 + 180,                // 3390
-  SCENE2:        3390 + 2790,               // 6180
-  SCENE3:        6180 + 2010,               // 8190
-  BRAND_OUTRO:   8190 + 1500,               // 9690
+  QUICK_USE:     720  + 960,                // 1680
+  CASE_INTRO:    1680 + 1740,               // 3420
+  SCENE1:        3420 + 180,                // 3600
+  SCENE2:        3600 + 2790,               // 6390
+  SCENE3:        6390 + 2010,               // 8400
+  BRAND_OUTRO:   8400 + 1500,               // 9900
 } as const;
 
-// Total: 9690 + 300 = 9990f = 333s = 5min33s
-export const TOTAL_FRAMES = 9990;
+// Total: 9900 + 300 = 10200f = 340s = 5min40s
+export const TOTAL_FRAMES = 10200;
 
 // Within-scene frame offset where video section starts
 export const SCENE_VIDEO_OFFSET = TRANSITION_FRAMES; // 240f

@@ -1,6 +1,7 @@
 import {
   AbsoluteFill,
   Easing,
+  Img,
   OffthreadVideo,
   Sequence,
   interpolate,
@@ -13,9 +14,11 @@ import { COLORS } from "../constants/colors";
 import { TransitionPage } from "../components/TransitionPage";
 import { SCENE_VIDEO_OFFSET } from "../constants/timing";
 
-// Scene 03: 快采 — 750 frames (25s)
+// Scene 03: 快采 — 960 frames (32s)
 // 0–240f:   TransitionPage
-// 240–750f: CollectVideoSection (17s / 510f)
+// 240–960f: CollectVideoSection (24s / 720f)
+//   240–750f: config.mp4 video + flip-out
+//   750–960f: device-config.png screenshot showcase
 
 // Step checklist — timed to video content
 const STEPS = [
@@ -225,8 +228,12 @@ const CollectVideoSection: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const VIDEO_DURATION = 510; // 17s
+  const VIDEO_DURATION = 510; // 17s — flip-out ends here
   const EXIT_START = 460;     // flip begins at ~15.3s
+  const FLIP_MID = 485;       // screenshot starts flipping in
+  const IMG_ENTER_END = 510;  // screenshot fully visible
+  const IMG_FADE_START = 690; // screenshot starts fading out
+  const SECTION_TOTAL = 720;  // 24s total section
 
   // --- Entrance ---
   const enterSpring = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 25 });
@@ -246,6 +253,30 @@ const CollectVideoSection: React.FC = () => {
 
   const combinedOpacity = entranceOpacity * exitOpacity;
   const videoTransform  = `perspective(1000px) scale(${entranceScale}) rotateY(${flipAngle}deg)`;
+
+  // --- Screenshot flip-in (rotateY -90 → 0) ---
+  const imgFlipAngle = interpolate(frame, [FLIP_MID, IMG_ENTER_END], [-90, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.quad),
+  });
+  const imgOpacity = interpolate(frame, [FLIP_MID, IMG_ENTER_END], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  }) * interpolate(frame, [IMG_FADE_START, SECTION_TOTAL], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  const imgTransform = `perspective(1000px) scale(${entranceScale}) rotateY(${imgFlipAngle}deg)`;
+
+  // --- Text annotation (fades in after screenshot is visible) ---
+  const textOpacity = interpolate(frame, [IMG_ENTER_END, IMG_ENTER_END + 25], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  }) * interpolate(frame, [IMG_FADE_START, SECTION_TOTAL], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
 
   // --- Glow pulse ---
   const glowPulse = interpolate(
@@ -347,122 +378,221 @@ const CollectVideoSection: React.FC = () => {
         ))}
       </div>
 
-      {/* ── Right: framed video with flip exit ── */}
+      {/* ── Right: framed video + screenshot flip-in ── */}
       <div
         style={{
           flex: "0 0 1200px",
-          opacity: combinedOpacity,
-          transform: videoTransform,
-          transformOrigin: "center center",
-          zIndex: 1,
           position: "relative",
+          zIndex: 1,
         }}
       >
-        {/* Glow halo */}
+        {/* === Video card (flip-out) === */}
         <div
           style={{
-            position: "absolute",
-            inset: -60,
-            borderRadius: 32,
-            background: `${COLORS.brandBlue}${Math.round(glowPulse * 255).toString(16).padStart(2, "0")}`,
-            filter: "blur(72px)",
-          }}
-        />
-        {/* Secondary outer ring glow */}
-        <div
-          style={{
-            position: "absolute",
-            inset: -90,
-            borderRadius: 40,
-            background: `${COLORS.accent}${Math.round(glowPulse * 0.35 * 255).toString(16).padStart(2, "0")}`,
-            filter: "blur(90px)",
-          }}
-        />
-
-        {/* Window frame */}
-        <div
-          style={{
+            opacity: combinedOpacity,
+            transform: videoTransform,
+            transformOrigin: "center center",
             position: "relative",
-            borderRadius: 14,
-            overflow: "hidden",
-            border: `1.5px solid ${COLORS.brandBlue}55`,
-            boxShadow: `0 0 0 1px ${COLORS.border}, 0 32px 64px rgba(0,0,0,0.6)`,
           }}
         >
-          {/* Chrome bar */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "10px 18px",
-              background: "#0A0A12",
-              borderBottom: `1px solid ${COLORS.border}`,
-            }}
-          >
-            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
-            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FFBD2E" }} />
-            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C940" }} />
-            <span
-              style={{
-                marginLeft: 12,
-                fontSize: 13,
-                color: COLORS.textSecondary,
-                fontFamily: '"Inter", sans-serif',
-                opacity: 0.6,
-              }}
-            >
-              蜻蜓工业助手 · 设备接入向导
-            </span>
-          </div>
-
-          {/* Video */}
-          <OffthreadVideo
-            src={staticFile("videos/config.mp4")}
-            style={{ width: "100%", display: "block" }}
-          />
-
-          {/* Progress bar */}
+          {/* Glow halo */}
           <div
             style={{
               position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 3,
-              background: COLORS.border,
+              inset: -60,
+              borderRadius: 32,
+              background: `${COLORS.brandBlue}${Math.round(glowPulse * 255).toString(16).padStart(2, "0")}`,
+              filter: "blur(72px)",
+            }}
+          />
+          {/* Secondary outer ring glow */}
+          <div
+            style={{
+              position: "absolute",
+              inset: -90,
+              borderRadius: 40,
+              background: `${COLORS.accent}${Math.round(glowPulse * 0.35 * 255).toString(16).padStart(2, "0")}`,
+              filter: "blur(90px)",
+            }}
+          />
+
+          {/* Window frame */}
+          <div
+            style={{
+              position: "relative",
+              borderRadius: 14,
+              overflow: "hidden",
+              border: `1.5px solid ${COLORS.brandBlue}55`,
+              boxShadow: `0 0 0 1px ${COLORS.border}, 0 32px 64px rgba(0,0,0,0.6)`,
             }}
           >
+            {/* Chrome bar */}
             <div
               style={{
-                height: "100%",
-                width: `${progress}%`,
-                background: `linear-gradient(90deg, ${COLORS.brandBlue}, ${COLORS.accent})`,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                background: "#0A0A12",
+                borderBottom: `1px solid ${COLORS.border}`,
               }}
+            >
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FFBD2E" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C940" }} />
+              <span
+                style={{
+                  marginLeft: 12,
+                  fontSize: 13,
+                  color: COLORS.textSecondary,
+                  fontFamily: '"Inter", sans-serif',
+                  opacity: 0.6,
+                }}
+              >
+                蜻蜓工业助手 · 设备接入向导
+              </span>
+            </div>
+
+            {/* Video */}
+            <OffthreadVideo
+              src={staticFile("videos/config.mp4")}
+              style={{ width: "100%", display: "block" }}
+            />
+
+            {/* Progress bar */}
+            <div
+              style={{
+                position: "absolute",
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                background: COLORS.border,
+              }}
+            >
+              <div
+                style={{
+                  height: "100%",
+                  width: `${progress}%`,
+                  background: `linear-gradient(90deg, ${COLORS.brandBlue}, ${COLORS.accent})`,
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Version badge */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 20,
+              right: 16,
+              background: `${COLORS.bgPrimary}CC`,
+              border: `1px solid ${COLORS.border}`,
+              borderRadius: 6,
+              padding: "4px 12px",
+            }}
+          >
+            <span
+              style={{
+                fontSize: 14,
+                color: COLORS.textSecondary,
+                fontFamily: '"Inter", monospace',
+              }}
+            >
+              v1.5.3
+            </span>
+          </div>
+        </div>
+
+        {/* === Screenshot card (flip-in) — absolute overlay === */}
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            opacity: imgOpacity,
+            transform: imgTransform,
+            transformOrigin: "center center",
+          }}
+        >
+          {/* Window frame */}
+          <div
+            style={{
+              borderRadius: 14,
+              overflow: "hidden",
+              border: `1.5px solid ${COLORS.brandBlue}55`,
+              boxShadow: `0 0 0 1px ${COLORS.border}, 0 32px 64px rgba(0,0,0,0.6)`,
+            }}
+          >
+            {/* Chrome bar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                padding: "10px 18px",
+                background: "#0A0A12",
+                borderBottom: `1px solid ${COLORS.border}`,
+              }}
+            >
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FFBD2E" }} />
+              <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C940" }} />
+              <span
+                style={{
+                  marginLeft: 12,
+                  fontSize: 13,
+                  color: COLORS.textSecondary,
+                  fontFamily: '"Inter", sans-serif',
+                  opacity: 0.6,
+                }}
+              >
+                蜻蜓工业助手 · 设备接入向导
+              </span>
+            </div>
+            <Img
+              src={staticFile("screenshots/device-config.png")}
+              style={{ width: "100%", display: "block" }}
             />
           </div>
         </div>
 
-        {/* Version badge */}
+        {/* === Text annotation below screenshot === */}
         <div
           style={{
             position: "absolute",
-            bottom: 20,
-            right: 16,
-            background: `${COLORS.bgPrimary}CC`,
-            border: `1px solid ${COLORS.border}`,
-            borderRadius: 6,
-            padding: "4px 12px",
+            top: "calc(100% + 20px)",
+            left: 0,
+            right: 0,
+            opacity: textOpacity,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
           }}
         >
           <span
             style={{
-              fontSize: 14,
-              color: COLORS.textSecondary,
-              fontFamily: '"Inter", monospace',
+              fontSize: 36,
+              fontWeight: 700,
+              color: COLORS.accent,
+              fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
+              letterSpacing: "0.06em",
             }}
           >
-            v1.5.3
+            可见即可采
+          </span>
+          <span
+            style={{
+              fontSize: 22,
+              fontWeight: 400,
+              color: COLORS.textSecondary,
+              fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
+              letterSpacing: "0.04em",
+            }}
+          >
+            逐步引导式配置系统
           </span>
         </div>
       </div>
@@ -482,7 +612,7 @@ export const QuickCollect: React.FC = () => {
           illustrationNode={<CollectIllustration />}
         />
       </Sequence>
-      <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={510} premountFor={fps}>
+      <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={720} premountFor={fps}>
         <CollectVideoSection />
       </Sequence>
     </AbsoluteFill>
