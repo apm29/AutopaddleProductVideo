@@ -12,13 +12,67 @@ import {
 } from "remotion";
 import { COLORS } from "../constants/colors";
 import { TransitionPage } from "../components/TransitionPage";
+import { PromptPanel } from "../components/PromptPanel";
 import { SCENE_VIDEO_OFFSET } from "../constants/timing";
 
-// Scene 07: 场景二 — 生产数据报表应用生成 — 1710 frames (57s)
-// 0–240f:    TransitionPage
-// 240–1710f: ReportVideoSection (49s / 1470f)
+const PROMPT =
+  "帮我生成一个设备监控大屏功能，显示所有设备的状态：在线、离线；空闲、运行中；是否报警；";
 
-// ── Right-side illustration for TransitionPage ──
+const STEPS = [
+  { label: "描述报表需求",    labelEn: "Describe report needs", startFrame: 0 },
+  { label: "AI 生成报表应用", labelEn: "AI builds report app",  startFrame: 0 },
+  { label: "构建部署应用",    labelEn: "Build & deploy app",    startFrame: 1020 },
+  { label: "查看数据与分析",  labelEn: "Review data & analysis", startFrame: 1170 },
+];
+
+interface StepItemProps {
+  label: string;
+  labelEn: string;
+  startFrame: number;
+  index: number;
+}
+
+const StepItem: React.FC<StepItemProps> = ({ label, labelEn, startFrame, index }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const s = spring({ frame: frame - startFrame, fps, config: { damping: 200 }, durationInFrames: 20 });
+  const opacity = interpolate(s, [0, 1], [0, 1]);
+  const x = interpolate(s, [0, 1], [-24, 0]);
+  const isDone = frame >= startFrame + 30;
+
+  return (
+    <div style={{ opacity, transform: `translateX(${x}px)`, display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 24 }}>
+      <div
+        style={{
+          flexShrink: 0, width: 30, height: 30, borderRadius: "50%", marginTop: 2,
+          background: isDone ? `linear-gradient(135deg, ${COLORS.brandBlue}, ${COLORS.accent})` : `${COLORS.brandBlue}33`,
+          border: isDone ? "none" : `1.5px solid ${COLORS.brandBlue}88`,
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+      >
+        {isDone ? (
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8l3.5 3.5L13 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span style={{ fontSize: 13, fontWeight: 700, color: COLORS.brandBlue, fontFamily: '"Inter", monospace' }}>
+            {index + 1}
+          </span>
+        )}
+      </div>
+      <div>
+        <p style={{ margin: 0, fontSize: 20, fontWeight: 600, color: isDone ? COLORS.textPrimary : COLORS.textSecondary, fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif', lineHeight: 1.4 }}>
+          {label}
+        </p>
+        <p style={{ margin: "2px 0 0", fontSize: 13, color: COLORS.textSecondary, fontFamily: '"Inter", sans-serif', opacity: 0.7 }}>
+          {labelEn}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 const Scene2Illustration: React.FC = () => {
   const frame = useCurrentFrame();
 
@@ -223,114 +277,6 @@ const Scene2Illustration: React.FC = () => {
   );
 };
 
-const STEPS = [
-  { label: "描述报表需求",    labelEn: "Describe report needs",   startFrame: 0 },
-  { label: "AI 生成报表应用", labelEn: "AI builds report app",    startFrame: 0 },
-  { label: "构建部署应用",   labelEn: "Build & deploy app",      startFrame: 1020 },
-  { label: "查看数据与分析",  labelEn: "Review data & analysis",  startFrame: 1170 },
-];
-
-interface StepItemProps {
-  label: string;
-  labelEn: string;
-  startFrame: number;
-  index: number;
-}
-
-const StepItem: React.FC<StepItemProps> = ({ label, labelEn, startFrame, index }) => {
-  const frame = useCurrentFrame();
-  const { fps } = useVideoConfig();
-
-  const s = spring({
-    frame: frame - startFrame,
-    fps,
-    config: { damping: 200 },
-    durationInFrames: 20,
-  });
-
-  const opacity = interpolate(s, [0, 1], [0, 1]);
-  const x = interpolate(s, [0, 1], [-24, 0]);
-  const isDone = frame >= startFrame + 30;
-
-  return (
-    <div
-      style={{
-        opacity,
-        transform: `translateX(${x}px)`,
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 14,
-        marginBottom: 28,
-      }}
-    >
-      <div
-        style={{
-          flexShrink: 0,
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
-          background: isDone
-            ? `linear-gradient(135deg, ${COLORS.brandBlue}, ${COLORS.accent})`
-            : `${COLORS.brandBlue}33`,
-          border: isDone ? "none" : `1.5px solid ${COLORS.brandBlue}88`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 2,
-        }}
-      >
-        {isDone ? (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M3 8l3.5 3.5L13 5"
-              stroke="#fff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        ) : (
-          <span
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: COLORS.brandBlue,
-              fontFamily: '"Inter", monospace',
-            }}
-          >
-            {index + 1}
-          </span>
-        )}
-      </div>
-      <div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 26,
-            fontWeight: 600,
-            color: isDone ? COLORS.textPrimary : COLORS.textSecondary,
-            fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
-            lineHeight: 1.4,
-          }}
-        >
-          {label}
-        </p>
-        <p
-          style={{
-            margin: "3px 0 0",
-            fontSize: 17,
-            color: COLORS.textSecondary,
-            fontFamily: '"Inter", sans-serif',
-            opacity: 0.7,
-          }}
-        >
-          {labelEn}
-        </p>
-      </div>
-    </div>
-  );
-};
-
 const ReportVideoSection: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -376,6 +322,10 @@ const ReportVideoSection: React.FC = () => {
 
   const panelSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
   const panelX = interpolate(panelSpring, [0, 1], [-40, 0]);
+
+  // --- Right panel slide-in ---
+  const rightSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
+  const rightX = interpolate(rightSpring, [0, 1], [40, 0]);
 
   return (
     <AbsoluteFill
@@ -424,37 +374,18 @@ const ReportVideoSection: React.FC = () => {
         );
       })}
 
-      {/* Left: step checklist */}
-      <div
-        style={{
-          opacity: interpolate(panelSpring, [0, 1], [0, 1]),
-          transform: `translateX(${panelX}px)`,
-          flex: "0 0 240px",
-          zIndex: 1,
-        }}
-      >
-        <p
-          style={{
-            margin: "0 0 36px",
-            fontSize: 22,
-            fontWeight: 500,
-            color: COLORS.textSecondary,
-            fontFamily: '"Inter", sans-serif',
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          Report Steps
-        </p>
-        {STEPS.map((step, i) => (
-          <StepItem key={i} index={i} {...step} />
-        ))}
-      </div>
+      {/* Left: prompt panel */}
+      <PromptPanel
+        prompt={PROMPT}
+        charsPerFrame={1.0}
+        panelOpacity={panelSpring}
+        panelX={panelX}
+      />
 
-      {/* Right: framed video with flip exit */}
+      {/* Center: framed video with flip exit */}
       <div
         style={{
-          flex: "0 0 1200px",
+          flex: "1 1 auto",
           opacity: combinedOpacity,
           transform: videoTransform,
           transformOrigin: "center center",
@@ -569,6 +500,33 @@ const ReportVideoSection: React.FC = () => {
             v1.5.3
           </span>
         </div>
+      </div>
+
+      {/* Right: step checklist */}
+      <div
+        style={{
+          opacity: interpolate(rightSpring, [0, 1], [0, 1]),
+          transform: `translateX(${rightX}px)`,
+          flex: "0 0 200px",
+          zIndex: 1,
+        }}
+      >
+        <p
+          style={{
+            margin: "0 0 24px",
+            fontSize: 18,
+            fontWeight: 500,
+            color: COLORS.textSecondary,
+            fontFamily: '"Inter", sans-serif',
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Report Steps
+        </p>
+        {STEPS.map((step, i) => (
+          <StepItem key={i} index={i} {...step} />
+        ))}
       </div>
     </AbsoluteFill>
   );

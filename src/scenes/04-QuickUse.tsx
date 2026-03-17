@@ -11,16 +11,20 @@ import {
 } from "remotion";
 import { COLORS } from "../constants/colors";
 import { TransitionPage } from "../components/TransitionPage";
+import { PromptPanel } from "../components/PromptPanel";
 import { SCENE_VIDEO_OFFSET } from "../constants/timing";
 
 // Scene 04: 快用 — 1710 frames (57s)
 // 0–240f:   TransitionPage
 // 240–1710f: UseVideoSection (49s / 1470f)
 
+const PROMPT =
+  "统计设备生产型号的生产数量、生产时长、空闲时长、离线时长。加上生产型号、设备名称、时间段筛选。 时间筛选为日期+班次：早8点到晚8点为白班，晚8点到次日早8点为晚班。 点击单条数据能够看到 生产型号、累计完成数量变化、状态（空闲、运行中、离线） 随时间的变化,使用分层时间轴展示。";
+
 const STEPS = [
-  { label: "描述业务需求",   labelEn: "Describe your need",      startFrame: 0 },
-  { label: "AI 生成应用计划", labelEn: "AI drafts app plan",      startFrame: 200 },
-  { label: "自动构建并部署", labelEn: "Auto-build & deploy",      startFrame: 900 },
+  { label: "描述业务需求",    labelEn: "Describe your need",   startFrame: 0 },
+  { label: "AI 生成应用计划", labelEn: "AI drafts app plan",   startFrame: 200 },
+  { label: "自动构建并部署",  labelEn: "Auto-build & deploy",  startFrame: 900 },
 ];
 
 interface StepItemProps {
@@ -34,89 +38,36 @@ const StepItem: React.FC<StepItemProps> = ({ label, labelEn, startFrame, index }
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const s = spring({
-    frame: frame - startFrame,
-    fps,
-    config: { damping: 200 },
-    durationInFrames: 20,
-  });
-
+  const s = spring({ frame: frame - startFrame, fps, config: { damping: 200 }, durationInFrames: 20 });
   const opacity = interpolate(s, [0, 1], [0, 1]);
   const x = interpolate(s, [0, 1], [-24, 0]);
   const isDone = frame >= startFrame + 30;
 
   return (
-    <div
-      style={{
-        opacity,
-        transform: `translateX(${x}px)`,
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 14,
-        marginBottom: 28,
-      }}
-    >
+    <div style={{ opacity, transform: `translateX(${x}px)`, display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 28 }}>
       <div
         style={{
-          flexShrink: 0,
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
-          background: isDone
-            ? `linear-gradient(135deg, ${COLORS.brandBlue}, ${COLORS.accent})`
-            : `${COLORS.brandBlue}33`,
+          flexShrink: 0, width: 32, height: 32, borderRadius: "50%", marginTop: 2,
+          background: isDone ? `linear-gradient(135deg, ${COLORS.brandBlue}, ${COLORS.accent})` : `${COLORS.brandBlue}33`,
           border: isDone ? "none" : `1.5px solid ${COLORS.brandBlue}88`,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginTop: 2,
+          display: "flex", alignItems: "center", justifyContent: "center",
         }}
       >
         {isDone ? (
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M3 8l3.5 3.5L13 5"
-              stroke="#fff"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8l3.5 3.5L13 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         ) : (
-          <span
-            style={{
-              fontSize: 16,
-              fontWeight: 700,
-              color: COLORS.brandBlue,
-              fontFamily: '"Inter", monospace',
-            }}
-          >
+          <span style={{ fontSize: 14, fontWeight: 700, color: COLORS.brandBlue, fontFamily: '"Inter", monospace' }}>
             {index + 1}
           </span>
         )}
       </div>
       <div>
-        <p
-          style={{
-            margin: 0,
-            fontSize: 26,
-            fontWeight: 600,
-            color: isDone ? COLORS.textPrimary : COLORS.textSecondary,
-            fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
-            lineHeight: 1.4,
-          }}
-        >
+        <p style={{ margin: 0, fontSize: 22, fontWeight: 600, color: isDone ? COLORS.textPrimary : COLORS.textSecondary, fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif', lineHeight: 1.4 }}>
           {label}
         </p>
-        <p
-          style={{
-            margin: "3px 0 0",
-            fontSize: 17,
-            color: COLORS.textSecondary,
-            fontFamily: '"Inter", sans-serif',
-            opacity: 0.7,
-          }}
-        >
+        <p style={{ margin: "3px 0 0", fontSize: 14, color: COLORS.textSecondary, fontFamily: '"Inter", sans-serif', opacity: 0.7 }}>
           {labelEn}
         </p>
       </div>
@@ -279,6 +230,10 @@ const UseVideoSection: React.FC = () => {
   const panelSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
   const panelX = interpolate(panelSpring, [0, 1], [-40, 0]);
 
+  // --- Right panel slide-in ---
+  const rightSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
+  const rightX = interpolate(rightSpring, [0, 1], [40, 0]);
+
   return (
     <AbsoluteFill
       style={{
@@ -326,37 +281,18 @@ const UseVideoSection: React.FC = () => {
         );
       })}
 
-      {/* ── Left: step checklist ── */}
-      <div
-        style={{
-          opacity: interpolate(panelSpring, [0, 1], [0, 1]),
-          transform: `translateX(${panelX}px)`,
-          flex: "0 0 240px",
-          zIndex: 1,
-        }}
-      >
-        <p
-          style={{
-            margin: "0 0 36px",
-            fontSize: 22,
-            fontWeight: 500,
-            color: COLORS.textSecondary,
-            fontFamily: '"Inter", sans-serif',
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-          }}
-        >
-          Use Steps
-        </p>
-        {STEPS.map((step, i) => (
-          <StepItem key={i} index={i} {...step} />
-        ))}
-      </div>
+      {/* ── Left: prompt panel ── */}
+      <PromptPanel
+        prompt={PROMPT}
+        charsPerFrame={1.5}
+        panelOpacity={panelSpring}
+        panelX={panelX}
+      />
 
-      {/* ── Right: framed video with flip exit ── */}
+      {/* ── Center: framed video with flip exit ── */}
       <div
         style={{
-          flex: "0 0 1200px",
+          flex: "1 1 auto",
           opacity: combinedOpacity,
           transform: videoTransform,
           transformOrigin: "center center",
@@ -471,6 +407,33 @@ const UseVideoSection: React.FC = () => {
             v1.5.3
           </span>
         </div>
+      </div>
+
+      {/* ── Right: step checklist ── */}
+      <div
+        style={{
+          opacity: interpolate(rightSpring, [0, 1], [0, 1]),
+          transform: `translateX(${rightX}px)`,
+          flex: "0 0 200px",
+          zIndex: 1,
+        }}
+      >
+        <p
+          style={{
+            margin: "0 0 28px",
+            fontSize: 18,
+            fontWeight: 500,
+            color: COLORS.textSecondary,
+            fontFamily: '"Inter", sans-serif',
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Use Steps
+        </p>
+        {STEPS.map((step, i) => (
+          <StepItem key={i} index={i} {...step} />
+        ))}
       </div>
     </AbsoluteFill>
   );
