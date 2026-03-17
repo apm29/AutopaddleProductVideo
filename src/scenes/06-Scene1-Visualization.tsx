@@ -820,13 +820,14 @@ const AlertFeaturePage: React.FC = () => {
                 padding: "12px 8px",
                 background: "linear-gradient(160deg,#1E2235 0%,#13151F 100%)",
                 borderRadius: 28,
+                overflow: "hidden",
                 border: `1.5px solid ${COLORS.cyan}44`,
                 boxShadow: `0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px ${COLORS.cyan}22, inset 0 1px 0 rgba(255,255,255,0.05)`,
                 display: "flex", flexDirection: "column",
               }}>
                 <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", width: 52, height: 16, background: "#0D0F1A", borderRadius: "0 0 10px 10px", zIndex: 2 }} />
                 <div style={{ height: 10, flexShrink: 0 }} />
-                <div style={{ flex: 1, borderRadius: 16, overflow: "hidden", background: "#000" }}>
+                <div style={{ flex: 1, borderRadius: 20, overflow: "hidden", background: "#000" }}>
                   {/* from={T2_END} resets frame so video plays from 0 */}
                   <Sequence from={T2_END}>
                     <OffthreadVideo
