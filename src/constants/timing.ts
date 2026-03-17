@@ -6,14 +6,14 @@ const TRANSITION_FRAMES = 240; // 8s — text intro page
 // Per-scene video segment durations
 const VIDEO_QUICK_INSTALL = 300;  // 10s — actual video (setup.mp4)
 const VIDEO_QUICK_COLLECT = 510;  // 17s — actual video (config.mp4)
-const VIDEO_QUICK_USE     = 1470; // 49s — actual video (device-monitor-app-gen.mp4)
+const VIDEO_QUICK_USE     = 1500; // 50s — actual video (product-analyze-app-gen.mp4)
 const VIDEO_SCENE         = 900;  // 30s placeholder (scenes 1-4)
 
 export const SCENE_DURATIONS = {
   COVER:         180,
   QUICK_INSTALL: TRANSITION_FRAMES + VIDEO_QUICK_INSTALL,   // 540f  18s
   QUICK_COLLECT: TRANSITION_FRAMES + VIDEO_QUICK_COLLECT,   // 750f  25s
-  QUICK_USE:     TRANSITION_FRAMES + VIDEO_QUICK_USE,       // 1710f 57s
+  QUICK_USE:     TRANSITION_FRAMES + VIDEO_QUICK_USE,       // 1740f 58s
   CASE_INTRO:    180,
   SCENE1:        TRANSITION_FRAMES + VIDEO_SCENE,           // 1140f 38s
   SCENE2:        TRANSITION_FRAMES + VIDEO_SCENE,
@@ -28,16 +28,16 @@ export const SCENE_STARTS = {
   QUICK_INSTALL: 180,
   QUICK_COLLECT: 180  + 540,                // 720
   QUICK_USE:     720  + 750,                // 1470
-  CASE_INTRO:    1470 + 1710,               // 3180
-  SCENE1:        3180 + 180,                // 3360
-  SCENE2:        3360 + 1140,               // 4500
-  SCENE3:        4500 + 1140,               // 5640
-  SCENE4:        5640 + 1140,               // 6780
-  BRAND_OUTRO:   6780 + 1140,               // 7920
+  CASE_INTRO:    1470 + 1740,               // 3210
+  SCENE1:        3210 + 180,                // 3390
+  SCENE2:        3390 + 1140,               // 4530
+  SCENE3:        4530 + 1140,               // 5670
+  SCENE4:        5670 + 1140,               // 6810
+  BRAND_OUTRO:   6810 + 1140,               // 7950
 } as const;
 
-// Total: 7920 + 300 = 8220f = 274s ≈ 4min 34s
-export const TOTAL_FRAMES = 8220;
+// Total: 7950 + 300 = 8250f = 275s ≈ 4min 35s
+export const TOTAL_FRAMES = 8250;
 
 // Within-scene frame offset where video section starts
 export const SCENE_VIDEO_OFFSET = TRANSITION_FRAMES; // 240f

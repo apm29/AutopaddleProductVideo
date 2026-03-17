@@ -231,8 +231,8 @@ const UseVideoSection: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  const VIDEO_DURATION = 1470; // 49s
-  const EXIT_START = 1400;     // flip begins at ~46.7s
+  const VIDEO_DURATION = 1500; // 50s
+  const EXIT_START = 1430;     // flip begins at ~47.7s
 
   // --- Entrance ---
   const enterSpring = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 25 });
@@ -424,7 +424,7 @@ const UseVideoSection: React.FC = () => {
 
           {/* Video */}
           <OffthreadVideo
-            src={staticFile("videos/device-monitor-app-gen.mp4")}
+            src={staticFile("videos/product-analyze-app-gen.mp4")}
             style={{ width: "100%", display: "block" }}
           />
 
@@ -488,7 +488,7 @@ export const QuickUse: React.FC = () => {
           illustrationNode={<UseIllustration />}
         />
       </Sequence>
-      <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={1470} premountFor={fps}>
+      <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={1500} premountFor={fps}>
         <UseVideoSection />
       </Sequence>
     </AbsoluteFill>
