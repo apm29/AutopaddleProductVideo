@@ -41,7 +41,11 @@ const Scene1Illustration: React.FC = () => {
 
   // Chrome bar height is fixed; screenshot fills the rest
   const CHROME_H = 38;
-  const CARD_H = 460;
+  // CARD_H shared height for both cards.
+  // device-monitor-app.png  1618×840 → landscape, desktop width = CARD_H * (1618/840) capped at 580
+  // device-monitor-mobile.png 394×862 → portrait, phone shell width is derived naturally
+  const CARD_H = 360;
+  const DESKTOP_W = Math.min(Math.round(CARD_H * (1618 / 840)), 580); // 693 → capped 580
 
   return (
     <div
@@ -59,7 +63,9 @@ const Scene1Illustration: React.FC = () => {
       {/* ── Desktop screenshot ── */}
       <div
         style={{
+          width: DESKTOP_W,
           height: CARD_H,
+          flexShrink: 0,
           display: "flex",
           flexDirection: "column",
           opacity: desktopOpacity,
@@ -112,7 +118,7 @@ const Scene1Illustration: React.FC = () => {
         >
           <Img
             src={staticFile("screenshots/device-monitor-app.png")}
-            style={{ width: "auto", height: "100%", display: "block", objectFit: "cover" }}
+            style={{ width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "top left" }}
           />
         </div>
       </div>
@@ -134,6 +140,7 @@ const Scene1Illustration: React.FC = () => {
             padding: "12px 8px",
             background: "linear-gradient(160deg, #1E2235 0%, #13151F 100%)",
             borderRadius: 28,
+            overflow: "hidden",
             border: `1.5px solid ${COLORS.border}`,
             boxShadow: `0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px ${COLORS.cyan}22, inset 0 1px 0 rgba(255,255,255,0.05)`,
             display: "flex",
@@ -156,10 +163,10 @@ const Scene1Illustration: React.FC = () => {
           />
           <div style={{ height: 10, flexShrink: 0 }} />
           {/* Screenshot fills shell */}
-          <div style={{ flex: 1, borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ flex: 1, borderRadius: 20, overflow: "hidden" }}>
             <Img
               src={staticFile("screenshots/device-monitor-mobile.png")}
-              style={{ width: "auto", height: "100%", display: "block" }}
+              style={{ width: "100%", height: "100%", display: "block", objectFit: "cover", objectPosition: "top" }}
             />
           </div>
           <div style={{ display: "flex", justifyContent: "center", marginTop: 8, flexShrink: 0 }}>
@@ -770,7 +777,7 @@ const AlertFeaturePage: React.FC = () => {
                 boxShadow: `0 0 32px rgba(255,60,60,${alertBorderOpacity * 0.5}), 0 16px 48px rgba(0,0,0,0.5)`,
               }}
             >
-              <Img src={staticFile("screenshots/factory-device-alert.jpg")} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              <Img src={staticFile("screenshots/factory-device-alert.jpg")} style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "top center", display: "block" }} />
               <div style={{ position: "absolute", inset: 0, background: `rgba(255,40,40,${alertFlash})`, pointerEvents: "none" }} />
               <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px)" }} />
               <div style={{ position: "absolute", top: 16, right: 16, background: "rgba(220,30,30,0.9)", borderRadius: 6, padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, opacity: badgeBlink, boxShadow: "0 0 12px rgba(255,50,50,0.6)" }}>
