@@ -11,6 +11,7 @@ const VIDEO_DEVICE_MONITOR  = 1470; // 49s — actual video (device-monitor-app-
 const VIDEO_SCENE2          = 1470; // 49s — actual video (product-analyze-app-gen.mp4)
 const VIDEO_SCENE3          = 990;  // 33s — actual video (program-distribute.mp4)
 const ANIM_SCENE3           = 180;  // 6s  — program distribute animation (120f anim + 60f hold)
+const SCREENSHOT_SCENE2     = 300;  // 10s — daily report screenshot showcase
 
 // Scene 1 alert showcase: desktop 16s + T1 2s + image 4s + T2 2s + mobile 12s = 36s
 const ALERT_SHOWCASE = 1080;
@@ -22,7 +23,7 @@ export const SCENE_DURATIONS = {
   QUICK_USE:     TRANSITION_FRAMES + VIDEO_QUICK_USE,                              // 1740f 58s
   CASE_INTRO:    180,
   SCENE1:        TRANSITION_FRAMES + VIDEO_DEVICE_MONITOR + ALERT_SHOWCASE,        // 2790f 93s
-  SCENE2:        TRANSITION_FRAMES + VIDEO_SCENE2,                                 // 1710f 57s
+  SCENE2:        TRANSITION_FRAMES + VIDEO_SCENE2 + SCREENSHOT_SCENE2,              // 2010f 67s
   SCENE3:        TRANSITION_FRAMES + VIDEO_SCENE3 + ANIM_SCENE3,               // 1410f 47s
   BRAND_OUTRO:   300,
 } as const;
@@ -36,12 +37,12 @@ export const SCENE_STARTS = {
   CASE_INTRO:    1470 + 1740,               // 3210
   SCENE1:        3210 + 180,                // 3390
   SCENE2:        3390 + 2790,               // 6180
-  SCENE3:        6180 + 1710,               // 7890
-  BRAND_OUTRO:   7890 + 1410,               // 9300
+  SCENE3:        6180 + 2010,               // 8190
+  BRAND_OUTRO:   8190 + 1410,               // 9600
 } as const;
 
-// Total: 9300 + 300 = 9600f = 320s ≈ 5min20s
-export const TOTAL_FRAMES = 9600;
+// Total: 9600 + 300 = 9900f = 330s = 5min30s
+export const TOTAL_FRAMES = 9900;
 
 // Within-scene frame offset where video section starts
 export const SCENE_VIDEO_OFFSET = TRANSITION_FRAMES; // 240f

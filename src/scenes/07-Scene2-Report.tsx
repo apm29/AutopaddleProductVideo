@@ -1,6 +1,7 @@
 import {
   AbsoluteFill,
   Easing,
+  Img,
   OffthreadVideo,
   Sequence,
   interpolate,
@@ -573,6 +574,352 @@ const ReportVideoSection: React.FC = () => {
   );
 };
 
+// ── Callout badge for screenshot annotations ──
+interface CalloutProps {
+  frame: number;
+  startFrame: number;
+  label: string;
+  sub: string;
+  color: string;
+  side: "left" | "right";
+  exitFrame?: number;
+}
+
+const Callout: React.FC<CalloutProps> = ({ frame, startFrame, label, sub, color, side, exitFrame }) => {
+  const { fps } = useVideoConfig();
+
+  const enterS = spring({
+    frame: frame - startFrame,
+    fps,
+    config: { damping: 180 },
+    durationInFrames: 22,
+  });
+  const enterOpacity = interpolate(enterS, [0, 1], [0, 1]);
+  const enterX = interpolate(enterS, [0, 1], [side === "right" ? 40 : -40, 0]);
+  const enterScale = interpolate(enterS, [0, 1], [0.82, 1]);
+
+  const exitOpacity = exitFrame != null
+    ? interpolate(frame, [exitFrame, exitFrame + 20], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })
+    : 1;
+
+  return (
+    <div
+      style={{
+        opacity: enterOpacity * exitOpacity,
+        transform: `translateX(${enterX}px) scale(${enterScale})`,
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        background: `${COLORS.bgSecondary}EE`,
+        border: `1px solid ${color}55`,
+        borderLeft: `3px solid ${color}`,
+        borderRadius: 8,
+        padding: "8px 14px",
+        backdropFilter: "blur(4px)",
+        pointerEvents: "none",
+      }}
+    >
+      <div
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: color,
+          flexShrink: 0,
+        }}
+      />
+      <div>
+        <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', lineHeight: 1.3 }}>
+          {label}
+        </p>
+        <p style={{ margin: 0, fontSize: 12, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', lineHeight: 1.4 }}>
+          {sub}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// ── Screenshot showcase: stacked side-angle → fly out to normal ──
+const ReportScreenshotShowcase: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  // ── Stack entrance (both cards slide in from right at 35deg) ──
+  const stackEnter = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 40 });
+  const stackX = interpolate(stackEnter, [0, 1], [320, 0]);
+  const stackOpacity = interpolate(stackEnter, [0, 1], [0, 1]);
+
+  // ── List card: fly out (55–90f) ──
+  const listFlyS = spring({ frame: frame - 55, fps, config: { damping: 160 }, durationInFrames: 35 });
+  const listRotY = interpolate(listFlyS, [0, 1], [35, 0]);
+  const listTX = interpolate(listFlyS, [0, 1], [-60, 0]);
+  // exit (155–185f)
+  const listExitAngle = interpolate(frame, [155, 185], [0, -35], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.in(Easing.quad) });
+  const listExitOpacity = interpolate(frame, [155, 183], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const listAngle = frame < 155 ? listRotY : listExitAngle;
+  const listOpacity = frame < 155 ? 1 : listExitOpacity;
+
+  // ── Detail card: fly out (180–215f) ──
+  const detailFlyS = spring({ frame: frame - 180, fps, config: { damping: 160 }, durationInFrames: 35 });
+  const detailRotY = interpolate(detailFlyS, [0, 1], [35, 0]);
+  const detailTX = interpolate(detailFlyS, [0, 1], [60, 0]);
+  // exit (275–300f)
+  const detailExitOpacity = interpolate(frame, [275, 298], [1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // ── Overall badge header ──
+  const headerOpacity = interpolate(frame, [0, 20], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+
+  // ── List callout exit (synchronised with list exit) ──
+  const calloutListExit = 150;
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: COLORS.bgPrimary,
+        alignItems: "center",
+        justifyContent: "center",
+        flexDirection: "column",
+        gap: 0,
+      }}
+    >
+      {/* Background grid */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `linear-gradient(${COLORS.border} 1px, transparent 1px),
+            linear-gradient(90deg, ${COLORS.border} 1px, transparent 1px)`,
+          backgroundSize: "60px 60px",
+          opacity: 0.13,
+        }}
+      />
+
+      {/* Top label badge */}
+      <div
+        style={{
+          opacity: headerOpacity,
+          position: "absolute",
+          top: 48,
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          background: `${COLORS.bgSecondary}CC`,
+          border: `1px solid ${COLORS.border}`,
+          borderRadius: 20,
+          padding: "6px 18px",
+        }}
+      >
+        <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#28C940" }} />
+        <span style={{ fontSize: 16, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+          某汽车零件制造企业 · 实际应用效果
+        </span>
+      </div>
+
+      {/* ── Stacked phase (0–55f): both cards visible at 35deg ── */}
+      {frame < 155 && (
+        <div
+          style={{
+            position: "absolute",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            perspective: "1400px",
+            width: "100%",
+          }}
+        >
+          {/* Detail card (behind) — only in stack phase */}
+          {frame < 180 && (
+            <div
+              style={{
+                position: "absolute",
+                opacity: frame < 55 ? stackOpacity * 0.45 : 0,
+                transform: `translateX(calc(${stackX}px + 60px)) rotateY(35deg) scale(0.9)`,
+                transformOrigin: "center center",
+                maxWidth: 920,
+                width: "100%",
+                borderRadius: 14,
+                overflow: "hidden",
+                border: `1px solid ${COLORS.border}`,
+                boxShadow: `0 20px 60px rgba(0,0,0,0.5)`,
+              }}
+            >
+              <Img src={staticFile("screenshots/product-daily-report-detail.png")} style={{ width: "100%", display: "block" }} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── List screenshot (main) ── */}
+      <div
+        style={{
+          position: "absolute",
+          perspective: "1400px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%",
+          padding: "0 80px",
+          boxSizing: "border-box",
+        }}
+      >
+        <div
+          style={{
+            opacity: frame < 55 ? stackOpacity : listOpacity,
+            transform: frame < 55
+              ? `translateX(calc(${stackX}px - 60px)) rotateY(35deg)`
+              : `translateX(${listTX}px) rotateY(${listAngle}deg)`,
+            transformOrigin: "center center",
+            maxWidth: 1360,
+            width: "100%",
+            position: "relative",
+            zIndex: 2,
+          }}
+        >
+          {/* Glow */}
+          <div style={{ position: "absolute", inset: -50, borderRadius: 28, background: `${COLORS.brandBlue}28`, filter: "blur(60px)" }} />
+          {/* Window frame */}
+          <div
+            style={{
+              position: "relative",
+              borderRadius: 14,
+              overflow: "hidden",
+              border: `1.5px solid ${COLORS.brandBlue}55`,
+              boxShadow: `0 0 0 1px ${COLORS.border}, 0 28px 60px rgba(0,0,0,0.55)`,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", background: "#0A0A12", borderBottom: `1px solid ${COLORS.border}` }}>
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FF5F57" }} />
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FFBD2E" }} />
+              <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#28C940" }} />
+              <span style={{ marginLeft: 10, fontSize: 12, color: COLORS.textSecondary, fontFamily: '"Inter",sans-serif', opacity: 0.6 }}>
+                蜻蜓工业助手 · 设备日报
+              </span>
+            </div>
+            <Img src={staticFile("screenshots/product-daily-report-list.png")} style={{ width: "100%", display: "block" }} />
+          </div>
+
+          {/* List callouts (appear after fly-out at f 100, stagger 10f) */}
+          <div
+            style={{
+              position: "absolute",
+              right: -220,
+              top: "28%",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              width: 210,
+            }}
+          >
+            {[
+              { label: "加工时长", sub: "机床实际切削加工累计时长", color: "#28C940", start: 100 },
+              { label: "开机时长", sub: "机床通电运行总时长", color: "#FF6B1A", start: 110 },
+              { label: "空闲时长", sub: "开机但未切削的等待时间", color: "#7A8599", start: 120 },
+              { label: "离线时长", sub: "机床断联或停机时间", color: "#FF4D4D", start: 130 },
+            ].map((c, i) => (
+              <Callout
+                key={i}
+                frame={frame}
+                startFrame={c.start}
+                label={c.label}
+                sub={c.sub}
+                color={c.color}
+                side="right"
+                exitFrame={calloutListExit}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Detail screenshot ── */}
+      {frame >= 160 && (
+        <div
+          style={{
+            position: "absolute",
+            perspective: "1400px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: "100%",
+            padding: "0 120px",
+            boxSizing: "border-box",
+          }}
+        >
+          <div
+            style={{
+              opacity: frame < 180 ? stackOpacity * 0.45 : detailExitOpacity,
+              transform: frame < 180
+                ? `translateX(calc(${stackX}px + 60px)) rotateY(35deg) scale(0.9)`
+                : `translateX(${detailTX}px) rotateY(${detailRotY}deg)`,
+              transformOrigin: "center center",
+              maxWidth: 980,
+              width: "100%",
+              position: "relative",
+              zIndex: 2,
+            }}
+          >
+            {/* Glow */}
+            <div style={{ position: "absolute", inset: -50, borderRadius: 28, background: `${COLORS.accent}1E`, filter: "blur(60px)" }} />
+            {/* Window frame */}
+            <div
+              style={{
+                position: "relative",
+                borderRadius: 14,
+                overflow: "hidden",
+                border: `1.5px solid ${COLORS.brandBlue}55`,
+                boxShadow: `0 0 0 1px ${COLORS.border}, 0 28px 60px rgba(0,0,0,0.55)`,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 16px", background: "#0A0A12", borderBottom: `1px solid ${COLORS.border}` }}>
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FF5F57" }} />
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#FFBD2E" }} />
+                <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#28C940" }} />
+                <span style={{ marginLeft: 10, fontSize: 12, color: COLORS.textSecondary, fontFamily: '"Inter",sans-serif', opacity: 0.6 }}>
+                  蜻蜓工业助手 · 日报详情 · #05001-新代
+                </span>
+              </div>
+              <Img src={staticFile("screenshots/product-daily-report-detail.png")} style={{ width: "100%", display: "block" }} />
+            </div>
+
+            {/* Detail callouts */}
+            <div
+              style={{
+                position: "absolute",
+                right: -220,
+                top: "20%",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                width: 210,
+              }}
+            >
+              {[
+                { label: "秒级时间轴", sub: "追溯每台机床每一秒运行状态", color: COLORS.brandBlue, start: 225 },
+                { label: "运行率 74.8%", sub: "当班加工效率一目了然", color: "#FF6B1A", start: 235 },
+                { label: "离线仅 8min", sub: "当班稳定运行，极少中断", color: "#28C940", start: 245 },
+              ].map((c, i) => (
+                <Callout
+                  key={i}
+                  frame={frame}
+                  startFrame={c.start}
+                  label={c.label}
+                  sub={c.sub}
+                  color={c.color}
+                  side="right"
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </AbsoluteFill>
+  );
+};
+
+
 export const Scene2Report: React.FC = () => {
   const { fps } = useVideoConfig();
 
@@ -594,6 +941,9 @@ export const Scene2Report: React.FC = () => {
       </Sequence>
       <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={1470} premountFor={fps}>
         <ReportVideoSection />
+      </Sequence>
+      <Sequence from={1710} durationInFrames={300}>
+        <ReportScreenshotShowcase />
       </Sequence>
     </AbsoluteFill>
   );
