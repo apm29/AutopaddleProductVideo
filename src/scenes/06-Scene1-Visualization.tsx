@@ -16,7 +16,12 @@ export const Scene1Visualization: React.FC = () => {
           tag="场景一"
           tagEn="Scene 1"
           title="设备状态管理应用生成"
-          body="通过 AI 一句话生成设备状态监控应用，实时掌握车间所有设备运行状态，PC 端与手机端同步查看，故障预警自动触发。"
+          bullets={[
+            { label: "实时状态查看", text: "随时掌握车床运行状态、加工数量及当前程序，生产进度一目了然。" },
+            { label: "打破空间限制", text: "无论在公司内或外出办公，均可跨地域掌握生产实况，管理得心应手。" },
+            { label: "数据实时同步", text: "移动端与电脑端秒级同步，告别繁琐的现场巡检，提升决策效率。" },
+          ]}
+          tagline="移动端随时查看，无需再到车床现场"
           imageSrc="2.png"
         />
       </Sequence>
