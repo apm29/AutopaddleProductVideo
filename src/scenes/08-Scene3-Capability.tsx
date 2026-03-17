@@ -402,19 +402,34 @@ const Scene3VideoSection: React.FC = () => {
   );
 };
 
-// ── Scene 3 animation cards (120f / 4s) ───────────────────────────────────
-// 3-column layout: progress monitoring | AI optimize | file distribution
+// ── Scene 3 animation cards (270f / 9s) ───────────────────────────────────
+// Full-screen carousel: Card1 (0-100f) → Card2 (80-180f) → Card3 (160-270f)
+// Each card enters/exits over 20f; solo for 60f (2s)
 
 const Scene3AnimationSection: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Staggered card entrance springs
-  const cardS = [0, 15, 30].map((delay) =>
-    spring({ frame: frame - delay, fps, config: { damping: 170 }, durationInFrames: 24 })
-  );
+  // ── Carousel translateX (%) for each card ──
+  const easeOut = Easing.out(Easing.cubic);
+  const easeIn  = Easing.in(Easing.cubic);
 
-  const titleOpacity = interpolate(frame, [0, 16], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  // Card 1: enters from left at 0f, exits left at 80f
+  const c1x = frame < 50
+    ? interpolate(frame, [0, 20], [-100, 0],  { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: easeOut })
+    : interpolate(frame, [80, 100], [0, -100], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: easeIn  });
+
+  // Card 2: enters from right at 80f, exits left at 160f
+  const c2x = frame < 130
+    ? interpolate(frame, [80, 100],  [100, 0],  { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: easeOut })
+    : interpolate(frame, [160, 180], [0, -100], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: easeIn  });
+
+  // Card 3: enters from right at 160f, stays
+  const c3x = interpolate(frame, [160, 180], [100, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: easeOut });
+
+  const titleSpring = spring({ frame, fps, config: { damping: 150 }, durationInFrames: 22 });
+  const titleOpacity = interpolate(titleSpring, [0, 1], [0, 1]);
+  const titleY       = interpolate(titleSpring, [0, 1], [-16, 0]);
 
   // ── Card 1: Device monitoring cards ──
   const deviceCards = [
@@ -427,30 +442,22 @@ const Scene3AnimationSection: React.FC = () => {
   const statusColor = (s: string) =>
     s === "运行中" ? COLORS.brandBlue : s === "空闲" ? COLORS.textSecondary : "#FF5F57";
 
-  // ── Card 2: AI optimization suggestions ──
+  // ── Card 2: AI optimization suggestions — visible from frame 80 ──
   const suggestions = [
-    { text: "主轴利用率 +12%",    sub: "较上周提升",     delay: 18 },
-    { text: "建议调整排程优先级", sub: "CNC-02 优先上机", delay: 34 },
-    { text: "预计提前完工 1.5h",  sub: "本班次任务",      delay: 50 },
+    { text: "主轴利用率 +12%",    sub: "较上周提升",     delay: 98  },
+    { text: "建议调整排程优先级", sub: "CNC-02 优先上机", delay: 114 },
+    { text: "预计提前完工 1.5h",  sub: "本班次任务",      delay: 130 },
   ];
-  const badgeOpacity = interpolate(frame, [80, 92], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const badgeScale   = interpolate(frame, [80, 92], [0.7, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const badgeOpacity = interpolate(frame, [160, 172], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
+  const badgeScale   = interpolate(frame, [160, 172], [0.7, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  // ── Card 3: File distribution ──
-  const distMachines = [52, 138, 224, 310]; // x positions for 4 CNC columns (in SVG coords, origin = left)
-  const litFrames    = [28, 40, 52, 64];
-  const finalBadge   = interpolate(frame, [78, 90], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-
-  // packet travel: y from 52 (server bottom) to 168 (machine top), frame range [22, 44]
-  const packetY = (col: number) =>
-    interpolate(frame - col * 4, [22, 50], [52, 162], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-  const packetVisible = (col: number) => {
-    const f = frame - col * 4;
-    return f >= 22 && f < 50;
-  };
+  // ── Card 3: File distribution — visible from frame 160 ──
+  const litFrames  = [188, 200, 212, 224];
+  const finalBadge = interpolate(frame, [238, 250], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
   const CARD_STYLE: React.CSSProperties = {
-    flex: 1,
+    position: "absolute",
+    inset: 0,
     borderRadius: 16,
     border: `1px solid ${COLORS.border}`,
     background: COLORS.bgSecondary,
@@ -474,32 +481,36 @@ const Scene3AnimationSection: React.FC = () => {
       {/* Ambient glow */}
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 50%, ${COLORS.brandBlue}09 0%, transparent 65%)` }} />
 
-      {/* Section label */}
-      <p
+      {/* Section label — bilingual */}
+      <div
         style={{
           opacity: titleOpacity,
-          margin: 0,
-          fontSize: 27,
-          fontWeight: 500,
-          color: COLORS.textSecondary,
-          fontFamily: '"Inter", sans-serif',
-          letterSpacing: "0.10em",
-          textTransform: "uppercase",
+          transform: `translateY(${titleY}px)`,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+          zIndex: 1,
         }}
       >
-        Deep Integration Capabilities
-      </p>
+        <p style={{ margin: 0, fontSize: 34, fontWeight: 700, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', letterSpacing: "0.06em" }}>
+          设备能力深度对接
+        </p>
+        <p style={{ margin: 0, fontSize: 18, fontWeight: 500, color: COLORS.textSecondary, fontFamily: '"Inter",sans-serif', letterSpacing: "0.10em", textTransform: "uppercase" }}>
+          Deep Integration Capabilities
+        </p>
+      </div>
 
-      {/* ── 3 cards ── */}
-      <div style={{ display: "flex", gap: 24, width: "100%", flex: 1, minHeight: 0 }}>
+      {/* ── Carousel container ── */}
+      <div style={{ position: "relative", overflow: "hidden", width: "100%", flex: 1, minHeight: 0, borderRadius: 16 }}>
 
         {/* ── Card 1: 生产进度接口 ── */}
         <div
           style={{
             ...CARD_STYLE,
-            opacity: interpolate(cardS[0], [0, 1], [0, 1]),
-            transform: `translateY(${interpolate(cardS[0], [0, 1], [32, 0])}px)`,
-            borderColor: `${COLORS.brandBlue}55`,
+            transform: `translateX(${c1x}%)`,
+            borderTop: `3px solid ${COLORS.brandBlue}`,
+            background: `linear-gradient(180deg, ${COLORS.brandBlue}16 0%, ${COLORS.bgSecondary} 55%)`,
           }}
         >
           {/* Card header */}
@@ -512,8 +523,7 @@ const Scene3AnimationSection: React.FC = () => {
               gap: 10,
             }}
           >
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.brandBlue, boxShadow: `0 0 8px ${COLORS.brandBlue}` }} />
-            <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+            <span style={{ fontSize: 28, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
               生产进度监控
             </span>
             <div style={{ marginLeft: "auto", display: "flex", gap: 12 }}>
@@ -530,7 +540,7 @@ const Scene3AnimationSection: React.FC = () => {
           </div>
 
           {/* Device cards grid */}
-          <div style={{ padding: "14px", display: "flex", flexWrap: "wrap", gap: 12, flex: 1, alignContent: "center" }}>
+          <div style={{ padding: "20px 24px", display: "flex", flexWrap: "wrap", gap: 16, flex: 1, alignContent: "center" }}>
             {deviceCards.map((m, i) => {
               const cardSpring = spring({ frame: frame - (m.startF - 4), fps, config: { damping: 200 }, durationInFrames: 20 });
               const cardOpacity = interpolate(cardSpring, [0, 1], [0, 1]);
@@ -546,20 +556,20 @@ const Scene3AnimationSection: React.FC = () => {
                   style={{
                     opacity: cardOpacity,
                     transform: `translateY(${cardY}px)`,
-                    width: "calc(50% - 6px)",
+                    width: "calc(50% - 8px)",
                     borderRadius: 12,
                     border: `1px solid ${sc}33`,
                     background: isRunning ? `${COLORS.brandBlue}09` : "#0D0D1A",
-                    padding: "14px 16px",
+                    padding: "18px 20px",
                     display: "flex",
                     flexDirection: "column",
-                    gap: 9,
+                    gap: 10,
                     boxShadow: isRunning ? `0 0 12px ${COLORS.brandBlue}18` : "none",
                   }}
                 >
                   {/* Name + status */}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 22, fontWeight: 700, color: COLORS.textPrimary, fontFamily: '"Inter",monospace' }}>
+                    <span style={{ fontSize: 24, fontWeight: 700, color: COLORS.textPrimary, fontFamily: '"Inter",monospace' }}>
                       {m.name}
                     </span>
                     <span
@@ -569,7 +579,7 @@ const Scene3AnimationSection: React.FC = () => {
                         color: sc,
                         background: `${sc}18`,
                         border: `1px solid ${sc}44`,
-                        padding: "2px 8px",
+                        padding: "2px 10px",
                         borderRadius: 4,
                         fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif',
                       }}
@@ -579,7 +589,7 @@ const Scene3AnimationSection: React.FC = () => {
                   </div>
 
                   {/* Program */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                     <span style={{ fontSize: 18, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>程序</span>
                     <span style={{ fontSize: 20, fontWeight: 600, color: isRunning ? COLORS.brandBlue : COLORS.textSecondary, fontFamily: '"Inter",monospace', opacity: isRunning ? 1 : 0.45 }}>
                       {m.program}
@@ -591,15 +601,15 @@ const Scene3AnimationSection: React.FC = () => {
 
                   {/* Counts */}
                   <div style={{ display: "flex", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      <span style={{ fontSize: 18, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>当前完成</span>
-                      <span style={{ fontSize: 30, fontWeight: 700, color: isRunning ? COLORS.textPrimary : COLORS.textSecondary, fontFamily: '"Inter","JetBrains Mono",monospace', lineHeight: 1 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{ fontSize: 17, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>当前完成</span>
+                      <span style={{ fontSize: 32, fontWeight: 700, color: isRunning ? COLORS.textPrimary : COLORS.textSecondary, fontFamily: '"Inter","JetBrains Mono",monospace', lineHeight: 1 }}>
                         {curDisplay}<span style={{ fontSize: 18, fontWeight: 400, marginLeft: 2 }}>件</span>
                       </span>
                     </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 1, alignItems: "flex-end" }}>
-                      <span style={{ fontSize: 18, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>累计完成</span>
-                      <span style={{ fontSize: 30, fontWeight: 700, color: COLORS.textSecondary, fontFamily: '"Inter","JetBrains Mono",monospace', lineHeight: 1, opacity: 0.7 }}>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2, alignItems: "flex-end" }}>
+                      <span style={{ fontSize: 17, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>累计完成</span>
+                      <span style={{ fontSize: 32, fontWeight: 700, color: COLORS.textSecondary, fontFamily: '"Inter","JetBrains Mono",monospace', lineHeight: 1, opacity: 0.7 }}>
                         {m.total.toLocaleString()}<span style={{ fontSize: 18, fontWeight: 400, marginLeft: 2 }}>件</span>
                       </span>
                     </div>
@@ -614,23 +624,22 @@ const Scene3AnimationSection: React.FC = () => {
         <div
           style={{
             ...CARD_STYLE,
-            opacity: interpolate(cardS[1], [0, 1], [0, 1]),
-            transform: `translateY(${interpolate(cardS[1], [0, 1], [32, 0])}px)`,
-            borderColor: `${COLORS.accent}55`,
+            transform: `translateX(${c2x}%)`,
+            borderTop: `3px solid ${COLORS.accent}`,
+            background: `linear-gradient(180deg, ${COLORS.accent}16 0%, ${COLORS.bgSecondary} 55%)`,
           }}
         >
           {/* Card header */}
           <div
             style={{
-              padding: "16px 22px 14px",
+              padding: "16px 28px 14px",
               borderBottom: `1px solid ${COLORS.border}`,
               display: "flex",
               alignItems: "center",
               gap: 10,
             }}
           >
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.accent, boxShadow: `0 0 8px ${COLORS.accent}` }} />
-            <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+            <span style={{ fontSize: 28, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
               AI 分析优化
             </span>
             <span style={{ marginLeft: "auto", fontSize: 20, color: COLORS.accent, fontFamily: '"Inter",sans-serif', opacity: 0.8 }}>
@@ -639,7 +648,7 @@ const Scene3AnimationSection: React.FC = () => {
           </div>
 
           {/* Suggestions */}
-          <div style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 18, flex: 1, justifyContent: "center" }}>
+          <div style={{ padding: "28px 40px", display: "flex", flexDirection: "column", gap: 20, flex: 1, justifyContent: "center" }}>
             {suggestions.map((sg, i) => {
               const sgS = spring({ frame: frame - sg.delay, fps, config: { damping: 180 }, durationInFrames: 20 });
               const sgOpacity = interpolate(sgS, [0, 1], [0, 1]);
@@ -651,36 +660,21 @@ const Scene3AnimationSection: React.FC = () => {
                     opacity: sgOpacity,
                     transform: `translateX(${sgX}px)`,
                     display: "flex",
-                    alignItems: "center",
-                    gap: 16,
-                    padding: "16px 18px",
-                    borderRadius: 12,
-                    background: `${COLORS.accent}0A`,
-                    border: `1px solid ${COLORS.accent}28`,
+                    alignItems: "stretch",
+                    gap: 20,
+                    padding: "22px 24px",
+                    borderRadius: 14,
+                    background: `${COLORS.accent}0C`,
+                    border: `1px solid ${COLORS.accent}30`,
                   }}
                 >
-                  <div
-                    style={{
-                      flexShrink: 0,
-                      width: 40,
-                      height: 40,
-                      borderRadius: "50%",
-                      background: `${COLORS.accent}22`,
-                      border: `1.5px solid ${COLORS.accent}66`,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  >
-                    <span style={{ fontSize: 27, color: COLORS.accent }}>
-                      {["↑", "→", "✓"][i]}
-                    </span>
-                  </div>
+                  {/* Left accent bar */}
+                  <div style={{ flexShrink: 0, width: 4, borderRadius: 2, background: COLORS.accent, opacity: 0.9 }} />
                   <div>
-                    <p style={{ margin: 0, fontSize: 27, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', lineHeight: 1.3 }}>
+                    <p style={{ margin: 0, fontSize: 30, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', lineHeight: 1.3 }}>
                       {sg.text}
                     </p>
-                    <p style={{ margin: "4px 0 0", fontSize: 20, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', opacity: 0.75 }}>
+                    <p style={{ margin: "6px 0 0", fontSize: 22, color: COLORS.textSecondary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', opacity: 0.75 }}>
                       {sg.sub}
                     </p>
                   </div>
@@ -693,18 +687,18 @@ const Scene3AnimationSection: React.FC = () => {
               style={{
                 opacity: badgeOpacity,
                 transform: `scale(${badgeScale})`,
-                marginTop: 4,
-                padding: "10px 16px",
-                borderRadius: 10,
+                marginTop: 8,
+                padding: "14px 20px",
+                borderRadius: 12,
                 background: `${COLORS.accent}15`,
                 border: `1px solid ${COLORS.accent}55`,
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
+                gap: 10,
               }}
             >
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.accent, boxShadow: `0 0 6px ${COLORS.accent}` }} />
-              <span style={{ fontSize: 22, fontWeight: 600, color: COLORS.accent, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+              <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.accent, boxShadow: `0 0 6px ${COLORS.accent}` }} />
+              <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.accent, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
                 建议已生成，可一键应用
               </span>
             </div>
@@ -715,23 +709,22 @@ const Scene3AnimationSection: React.FC = () => {
         <div
           style={{
             ...CARD_STYLE,
-            opacity: interpolate(cardS[2], [0, 1], [0, 1]),
-            transform: `translateY(${interpolate(cardS[2], [0, 1], [32, 0])}px)`,
-            borderColor: `${COLORS.cyan}55`,
+            transform: `translateX(${c3x}%)`,
+            borderTop: `3px solid ${COLORS.cyan}`,
+            background: `linear-gradient(180deg, ${COLORS.cyan}16 0%, ${COLORS.bgSecondary} 55%)`,
           }}
         >
           {/* Card header */}
           <div
             style={{
-              padding: "16px 22px 14px",
+              padding: "16px 28px 14px",
               borderBottom: `1px solid ${COLORS.border}`,
               display: "flex",
               alignItems: "center",
               gap: 10,
             }}
           >
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.cyan, boxShadow: `0 0 8px ${COLORS.cyan}` }} />
-            <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+            <span style={{ fontSize: 28, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
               工艺文件下发
             </span>
             <span style={{ marginLeft: "auto", fontSize: 20, color: COLORS.cyan, fontFamily: '"Inter",sans-serif', opacity: 0.8 }}>
@@ -739,105 +732,162 @@ const Scene3AnimationSection: React.FC = () => {
             </span>
           </div>
 
-          {/* Distribution SVG */}
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "16px 22px 18px", gap: 16 }}>
-            <svg width="362" height="220" viewBox="0 0 362 200" fill="none" style={{ width: "100%", maxHeight: 220 }}>
-              {/* Cloud/server node at top center */}
-              <rect x="131" y="8" width="100" height="44" rx="10" fill="#13162A" stroke={COLORS.cyan} strokeWidth="1.5" />
-              <rect x="143" y="18" width="52" height="7" rx="3" fill="#253060" />
-              <rect x="143" y="30" width="38" height="5" rx="2.5" fill="#253060" opacity="0.6" />
-              <circle cx="218" cy="22" r="4" fill={COLORS.cyan} opacity="0.9" />
-              <circle cx="207" cy="22" r="3" fill="#28C840" opacity="0.7" />
-              <text x="181" y="64" textAnchor="middle" fontSize="18" fill={COLORS.textSecondary} fontFamily='"Inter",sans-serif'>蜻蜓平台</text>
+          {/* Distribution diagram — pure React, no SVG */}
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", padding: "32px 40px 24px", gap: 0 }}>
 
-              {/* Vertical dashed lines to each machine */}
-              {distMachines.map((x, i) => {
+            {/* Server node */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                padding: "16px 32px",
+                borderRadius: 16,
+                background: "#0D0D1A",
+                border: `1.5px solid ${COLORS.cyan}`,
+                boxShadow: `0 0 24px ${COLORS.cyan}33`,
+              }}
+            >
+              <div style={{ display: "flex", gap: 6 }}>
+                <div style={{ width: 11, height: 11, borderRadius: "50%", background: COLORS.cyan, opacity: 0.9, boxShadow: `0 0 6px ${COLORS.cyan}` }} />
+                <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C840", opacity: 0.7 }} />
+              </div>
+              <span style={{ fontSize: 26, fontWeight: 600, color: COLORS.textPrimary, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+                蜻蜓平台
+              </span>
+            </div>
+
+            {/* Vertical drop from server to bus */}
+            <div style={{ width: 2, height: 40, background: `repeating-linear-gradient(to bottom, ${COLORS.cyan}88 0px, ${COLORS.cyan}88 6px, transparent 6px, transparent 11px)` }} />
+
+            {/* Horizontal bus line */}
+            <div style={{ position: "relative", width: "88%", height: 2, background: `linear-gradient(90deg, transparent 0%, ${COLORS.cyan}99 15%, ${COLORS.cyan}99 85%, transparent 100%)` }}>
+              {/* 4 vertical drops from bus */}
+              {[0, 1, 2, 3].map((i) => {
                 const lit = frame >= litFrames[i];
-                const lineColor = lit ? COLORS.cyan : "#253060";
-                return (
-                  <line
-                    key={i}
-                    x1={x} y1="72"
-                    x2={x} y2="152"
-                    stroke={lineColor}
-                    strokeWidth="1.5"
-                    strokeDasharray="5 4"
-                    opacity={lit ? 1 : 0.4}
-                  />
+                const pctVal = interpolate(
+                  frame - 160 - i * 4,
+                  [22, 50],
+                  [0, 100],
+                  { extrapolateLeft: "clamp", extrapolateRight: "clamp" }
                 );
-              })}
-
-              {/* Connecting horizontal line from server */}
-              <line x1="181" y1="52" x2="181" y2="72" stroke={COLORS.cyan} strokeWidth="1.5" opacity="0.6" />
-              <line x1="52" y1="72" x2="310" y2="72" stroke={COLORS.cyan} strokeWidth="1.5" strokeDasharray="5 4" opacity="0.5" />
-
-              {/* Animated packets */}
-              {distMachines.map((x, i) => {
-                if (!packetVisible(i)) return null;
-                const py = packetY(i);
+                const localF = frame - 160 - i * 4;
+                const showPacket = localF >= 22 && localF < 50;
+                const leftPct = `${12.5 + i * 25}%`;
                 return (
-                  <rect
+                  <div
                     key={i}
-                    x={x - 9}
-                    y={py - 5}
-                    width={18}
-                    height={10}
-                    rx="3"
-                    fill={COLORS.cyan}
-                    opacity="0.9"
-                    style={{ filter: `drop-shadow(0 0 4px ${COLORS.cyan})` }}
-                  />
-                );
-              })}
-
-              {/* CNC machine nodes */}
-              {distMachines.map((x, i) => {
-                const lit = frame >= litFrames[i];
-                const s = lit ? spring({ frame: frame - litFrames[i], fps, config: { damping: 200 }, durationInFrames: 14 }) : 0;
-                const scl = lit ? interpolate(s, [0, 1], [0.6, 1]) : 1;
-                const nodeColor = lit ? COLORS.cyan : "#253060";
-                const nodeOpacity = lit ? 1 : 0.45;
-                return (
-                  <g key={i} transform={`translate(${x}, 178) scale(${scl})`} style={{ transformOrigin: `${x}px 178px` }}>
-                    <rect x="-22" y="-22" width="44" height="44" rx="8"
-                      fill={lit ? `${COLORS.cyan}18` : "#13162A"}
-                      stroke={nodeColor}
-                      strokeWidth="1.5"
-                      opacity={nodeOpacity}
-                      style={{ filter: lit ? `drop-shadow(0 0 8px ${COLORS.cyan}66)` : "none" }}
-                    />
-                    {lit ? (
-                      <path d="-7 0l4.5 4.5 9-9" transform="translate(-7,0)" stroke={COLORS.cyan} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-                    ) : (
-                      <>
-                        <rect x="-9" y="-1" width="18" height="10" rx="2" stroke="#253060" strokeWidth="1.5" />
-                        <rect x="-5" y="-7" width="4" height="7" rx="1" stroke="#253060" strokeWidth="1.5" />
-                      </>
+                    style={{
+                      position: "absolute",
+                      left: leftPct,
+                      top: 0,
+                      transform: "translateX(-50%)",
+                      width: 2,
+                      height: 80,
+                      background: `repeating-linear-gradient(to bottom, ${lit ? COLORS.cyan : COLORS.border}99 0px, ${lit ? COLORS.cyan : COLORS.border}99 6px, transparent 6px, transparent 11px)`,
+                    }}
+                  >
+                    {showPacket && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: -9,
+                          top: `${pctVal}%`,
+                          width: 20,
+                          height: 11,
+                          borderRadius: 4,
+                          background: COLORS.cyan,
+                          boxShadow: `0 0 10px ${COLORS.cyan}, 0 0 20px ${COLORS.cyan}66`,
+                          transform: "translateY(-50%)",
+                        }}
+                      />
                     )}
-                    <text y="30" textAnchor="middle" fontSize="16" fill={lit ? COLORS.cyan : "#3A4870"} fontFamily='"Inter",sans-serif'>
-                      CNC-{String(i + 1).padStart(2, "0")}
-                    </text>
-                  </g>
+                  </div>
                 );
               })}
-            </svg>
+            </div>
+
+            {/* CNC machine cards row */}
+            <div style={{ display: "flex", width: "88%", gap: 16, marginTop: 80, flex: 1, alignItems: "flex-start" }}>
+              {[0, 1, 2, 3].map((i) => {
+                const lit = frame >= litFrames[i];
+                const nodeSpring = lit
+                  ? spring({ frame: frame - litFrames[i], fps, config: { damping: 180 }, durationInFrames: 16 })
+                  : 0;
+                const nodeScale = lit ? interpolate(nodeSpring, [0, 1], [0.7, 1]) : 1;
+                const nodeOpacity = lit ? 1 : 0.3;
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      flex: 1,
+                      opacity: 0.4 + (lit ? nodeOpacity * 0.6 : 0),
+                      transform: `scale(${nodeScale})`,
+                      transformOrigin: "top center",
+                      borderRadius: 16,
+                      border: `1.5px solid ${lit ? COLORS.cyan : COLORS.border}`,
+                      background: lit ? `${COLORS.cyan}14` : "#0D0D1A",
+                      padding: "20px 12px",
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      gap: 12,
+                      boxShadow: lit ? `0 0 20px ${COLORS.cyan}44` : "none",
+                    }}
+                  >
+                    {/* Status icon */}
+                    <div
+                      style={{
+                        width: 54,
+                        height: 54,
+                        borderRadius: 14,
+                        background: lit ? `${COLORS.cyan}22` : "#13162A",
+                        border: `1.5px solid ${lit ? COLORS.cyan : COLORS.border}`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 28,
+                        color: lit ? COLORS.cyan : COLORS.border,
+                      }}
+                    >
+                      {lit ? "✓" : "⬜"}
+                    </div>
+                    <span style={{ fontSize: 20, fontWeight: 700, color: lit ? COLORS.cyan : COLORS.textSecondary, fontFamily: '"Inter",monospace' }}>
+                      CNC-{String(i + 1).padStart(2, "0")}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 17,
+                        color: lit ? COLORS.cyan : "transparent",
+                        fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif',
+                        opacity: lit ? 0.85 : 0,
+                        fontWeight: 500,
+                      }}
+                    >
+                      已同步
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
 
             {/* 告别U盘 badge */}
             <div
               style={{
                 opacity: finalBadge,
                 transform: `scale(${interpolate(finalBadge, [0, 1], [0.8, 1])})`,
+                marginTop: 24,
                 display: "flex",
                 alignItems: "center",
-                gap: 8,
-                padding: "10px 22px",
-                borderRadius: 22,
+                gap: 12,
+                padding: "14px 32px",
+                borderRadius: 28,
                 background: `${COLORS.cyan}14`,
                 border: `1px solid ${COLORS.cyan}55`,
               }}
             >
-              <div style={{ width: 7, height: 7, borderRadius: "50%", background: COLORS.cyan, boxShadow: `0 0 6px ${COLORS.cyan}` }} />
-              <span style={{ fontSize: 24, fontWeight: 600, color: COLORS.cyan, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
+              <div style={{ width: 9, height: 9, borderRadius: "50%", background: COLORS.cyan, boxShadow: `0 0 8px ${COLORS.cyan}` }} />
+              <span style={{ fontSize: 26, fontWeight: 600, color: COLORS.cyan, fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>
                 告别 U 盘逐台导入
               </span>
             </div>
@@ -872,7 +922,7 @@ export const Scene3Capability: React.FC = () => {
       <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={990} premountFor={fps}>
         <Scene3VideoSection />
       </Sequence>
-      <Sequence from={SCENE_VIDEO_OFFSET + 990} durationInFrames={180} premountFor={fps}>
+      <Sequence from={SCENE_VIDEO_OFFSET + 990} durationInFrames={270} premountFor={fps}>
         <Scene3AnimationSection />
       </Sequence>
     </AbsoluteFill>
