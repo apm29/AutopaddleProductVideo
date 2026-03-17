@@ -1,45 +1,39 @@
 import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
 import { COLORS } from "../constants/colors";
 import { SCENE_DURATIONS, SCENE_STARTS } from "../constants/timing";
-import { OpeningHook } from "../scenes/01-OpeningHook";
-import { BrandIntro } from "../scenes/02-BrandIntro";
-import { QuickInstall } from "../scenes/03-QuickInstall";
-import { QuickCollect } from "../scenes/04-QuickCollect";
-import { QuickUse } from "../scenes/05-QuickUse";
-import { MetricsHighlight } from "../scenes/06-MetricsHighlight";
-import { BrandOutro } from "../scenes/07-BrandOutro";
+import { Cover } from "../scenes/01-Cover";
+import { QuickInstall } from "../scenes/02-QuickInstall";
+import { QuickCollect } from "../scenes/03-QuickCollect";
+import { QuickUse } from "../scenes/04-QuickUse";
+import { CaseIntro } from "../scenes/05-CaseIntro";
+import { Scene1Visualization } from "../scenes/06-Scene1-Visualization";
+import { Scene2Alert } from "../scenes/07-Scene2-Alert";
+import { Scene3Efficiency } from "../scenes/08-Scene3-Efficiency";
+import { Scene4Program } from "../scenes/09-Scene4-Program";
+import { BrandOutro } from "../scenes/10-BrandOutro";
 
-// Main composition: 5400 frames = 180s @ 30fps, 1920×1080
+// Main composition: 9090 frames = 303s @ 30fps, 1920×1080
 
 export const QingTingVideo: React.FC = () => {
   const { fps } = useVideoConfig();
-  const premount = fps; // 1 second premount for all scenes
+  const premount = fps; // 1s premount
 
   return (
     <AbsoluteFill style={{ backgroundColor: COLORS.bgPrimary }}>
       <Sequence
-        from={SCENE_STARTS.OPENING_HOOK}
-        durationInFrames={SCENE_DURATIONS.OPENING_HOOK}
+        from={SCENE_STARTS.COVER}
+        durationInFrames={SCENE_DURATIONS.COVER}
         premountFor={premount}
-        name="01 · 开场钩子"
+        name="01 · 封面"
       >
-        <OpeningHook />
-      </Sequence>
-
-      <Sequence
-        from={SCENE_STARTS.BRAND_INTRO}
-        durationInFrames={SCENE_DURATIONS.BRAND_INTRO}
-        premountFor={premount}
-        name="02 · 品牌出场"
-      >
-        <BrandIntro />
+        <Cover />
       </Sequence>
 
       <Sequence
         from={SCENE_STARTS.QUICK_INSTALL}
         durationInFrames={SCENE_DURATIONS.QUICK_INSTALL}
         premountFor={premount}
-        name="03 · 快装"
+        name="02 · 快装"
       >
         <QuickInstall />
       </Sequence>
@@ -48,7 +42,7 @@ export const QingTingVideo: React.FC = () => {
         from={SCENE_STARTS.QUICK_COLLECT}
         durationInFrames={SCENE_DURATIONS.QUICK_COLLECT}
         premountFor={premount}
-        name="04 · 快采"
+        name="03 · 快采"
       >
         <QuickCollect />
       </Sequence>
@@ -57,25 +51,61 @@ export const QingTingVideo: React.FC = () => {
         from={SCENE_STARTS.QUICK_USE}
         durationInFrames={SCENE_DURATIONS.QUICK_USE}
         premountFor={premount}
-        name="05 · 快用"
+        name="04 · 快用"
       >
         <QuickUse />
       </Sequence>
 
       <Sequence
-        from={SCENE_STARTS.METRICS}
-        durationInFrames={SCENE_DURATIONS.METRICS}
+        from={SCENE_STARTS.CASE_INTRO}
+        durationInFrames={SCENE_DURATIONS.CASE_INTRO}
         premountFor={premount}
-        name="06 · 数字收割"
+        name="05 · 案例介绍"
       >
-        <MetricsHighlight />
+        <CaseIntro />
+      </Sequence>
+
+      <Sequence
+        from={SCENE_STARTS.SCENE1}
+        durationInFrames={SCENE_DURATIONS.SCENE1}
+        premountFor={premount}
+        name="06 · 场景一：设备状态可视化"
+      >
+        <Scene1Visualization />
+      </Sequence>
+
+      <Sequence
+        from={SCENE_STARTS.SCENE2}
+        durationInFrames={SCENE_DURATIONS.SCENE2}
+        premountFor={premount}
+        name="07 · 场景二：设备异常预警"
+      >
+        <Scene2Alert />
+      </Sequence>
+
+      <Sequence
+        from={SCENE_STARTS.SCENE3}
+        durationInFrames={SCENE_DURATIONS.SCENE3}
+        premountFor={premount}
+        name="08 · 场景三：生产效率分析"
+      >
+        <Scene3Efficiency />
+      </Sequence>
+
+      <Sequence
+        from={SCENE_STARTS.SCENE4}
+        durationInFrames={SCENE_DURATIONS.SCENE4}
+        premountFor={premount}
+        name="09 · 场景四：程序下发"
+      >
+        <Scene4Program />
       </Sequence>
 
       <Sequence
         from={SCENE_STARTS.BRAND_OUTRO}
         durationInFrames={SCENE_DURATIONS.BRAND_OUTRO}
         premountFor={premount}
-        name="07 · 品牌收尾"
+        name="10 · 品牌收尾"
       >
         <BrandOutro />
       </Sequence>
