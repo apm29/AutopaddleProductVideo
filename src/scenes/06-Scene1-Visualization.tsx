@@ -183,7 +183,7 @@ const Scene1Illustration: React.FC = () => {
 
 // ── Alert feature showcase page ─────────────────────────────────────────────
 
-const ALERT_DISPLAY_FRAMES = 960; // 16s + 4s + 12s = 32s
+const ALERT_DISPLAY_FRAMES = 1080; // 16s + 2s + 4s + 2s + 12s = 36s
 
 const FEATURE_CARDS = [
   {
@@ -231,6 +231,113 @@ const SEG2_END = 660; // 540–659 alert image (4s)
 const T2_END   = 720; // 660–719 wechat notification transition (2s)
 // Seg3: T2_END–1079 alert-process video (12s)
 
+// ── Step checklist for AlertFeaturePage ─────────────────────────────────────
+
+const ALERT_STEPS = [
+  { label: "报警规则配置", labelEn: "Configure alert rules", startFrame: 0,        doneFrame: SEG1_END },
+  { label: "设备异常触发", labelEn: "Device fault detected", startFrame: SEG1_END, doneFrame: T2_END  },
+  { label: "报警处理跟进", labelEn: "Respond & resolve",     startFrame: T2_END,   doneFrame: 99999   },
+];
+
+interface AlertStepItemProps {
+  label: string;
+  labelEn: string;
+  startFrame: number;
+  doneFrame: number;
+  index: number;
+}
+
+const AlertStepItem: React.FC<AlertStepItemProps> = ({ label, labelEn, startFrame, doneFrame, index }) => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const s = spring({
+    frame: frame - startFrame,
+    fps,
+    config: { damping: 200 },
+    durationInFrames: 20,
+  });
+
+  const opacity = interpolate(s, [0, 1], [0, 1]);
+  const x = interpolate(s, [0, 1], [-24, 0]);
+  const isDone = frame >= doneFrame;
+
+  return (
+    <div
+      style={{
+        opacity,
+        transform: `translateX(${x}px)`,
+        display: "flex",
+        alignItems: "flex-start",
+        gap: 14,
+        marginBottom: 28,
+      }}
+    >
+      {/* Step circle */}
+      <div
+        style={{
+          flexShrink: 0,
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+          background: isDone
+            ? `linear-gradient(135deg, ${COLORS.brandBlue}, ${COLORS.accent})`
+            : `${COLORS.brandBlue}33`,
+          border: isDone ? "none" : `1.5px solid ${COLORS.brandBlue}88`,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          marginTop: 2,
+        }}
+      >
+        {isDone ? (
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M3 8l3.5 3.5L13 5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        ) : (
+          <span
+            style={{
+              fontSize: 16,
+              fontWeight: 700,
+              color: COLORS.brandBlue,
+              fontFamily: '"Inter", monospace',
+            }}
+          >
+            {index + 1}
+          </span>
+        )}
+      </div>
+
+      {/* Text */}
+      <div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 26,
+            fontWeight: 600,
+            color: isDone ? COLORS.textPrimary : COLORS.textSecondary,
+            fontFamily: '"PingFang SC", "Microsoft YaHei", sans-serif',
+            lineHeight: 1.4,
+          }}
+        >
+          {label}
+        </p>
+        <p
+          style={{
+            margin: "3px 0 0",
+            fontSize: 17,
+            color: COLORS.textSecondary,
+            fontFamily: '"Inter", sans-serif',
+            opacity: 0.7,
+          }}
+        >
+          {labelEn}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // ── T1: 报警配置下发示意 ─────────────────────────────────────────────────────
 
 const ConfigPushTransition: React.FC<{ startFrame: number }> = ({ startFrame }) => {
@@ -256,7 +363,6 @@ const ConfigPushTransition: React.FC<{ startFrame: number }> = ({ startFrame }) 
   // Bottom text fade
   const textOpacity = interpolate(f, [24, 36], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
 
-  // Fade in/out for the whole component (handled by parent opacity)
   const DEVICES = 6;
 
   return (
@@ -264,7 +370,7 @@ const ConfigPushTransition: React.FC<{ startFrame: number }> = ({ startFrame }) 
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 45%, ${COLORS.brandBlue}10 0%, transparent 60%)` }} />
 
       {/* ── Diagram ── */}
-      <div style={{ width: 900, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0 }}>
+      <div style={{ width: "80%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 0 }}>
 
         {/* Server block */}
         <div style={{
@@ -534,6 +640,10 @@ const AlertFeaturePage: React.FC = () => {
     spring({ frame: frame - delay, fps, config: { damping: 180 }, durationInFrames: 26 })
   );
 
+  // Left panel entrance
+  const panelSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
+  const panelX = interpolate(panelSpring, [0, 1], [-40, 0]);
+
   // Which segment are we in?
   const inSeg1 = frame < SEG1_END;
   const inT1   = frame >= SEG1_END && frame < T1_END;
@@ -569,129 +679,167 @@ const AlertFeaturePage: React.FC = () => {
       {/* Background glow */}
       <div style={{ position: "absolute", inset: 0, background: `radial-gradient(ellipse at 50% 20%, ${COLORS.brandBlue}08 0%, transparent 60%)`, pointerEvents: "none" }} />
 
-      {/* ── Main content area (above cards) ── */}
-      <div style={{ position: "absolute", top: 44, left: 100, right: 100, bottom: 220 }}>
-
-        {/* Segment 1: alert-config.mp4 — desktop browser */}
-        {(inSeg1 || frame < SEG1_END + FADE) && (
-          <div
+      {/* ── Main row: steps + media ── */}
+      <div style={{
+        position: "absolute",
+        top: 0, left: 0, right: 0, bottom: 180,
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        padding: "0 60px",
+        gap: 60,
+      }}>
+        {/* Left: step checklist */}
+        <div
+          style={{
+            flex: "0 0 300px",
+            zIndex: 2,
+            opacity: interpolate(panelSpring, [0, 1], [0, 1]),
+            transform: `translateX(${panelX}px)`,
+          }}
+        >
+          <p
             style={{
-              position: "absolute", inset: 0,
-              opacity: seg1Opacity,
-              transform: `translateY(${entryY(seg1Spring)}px) scale(${entryScl(seg1Spring)})`,
-              display: "flex", flexDirection: "column",
-              borderRadius: 10, overflow: "hidden",
-              border: `1.5px solid #F5A62344`,
-              boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+              margin: "0 0 36px",
+              fontSize: 18,
+              fontWeight: 500,
+              color: COLORS.textSecondary,
+              fontFamily: '"Inter", sans-serif',
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
             }}
           >
-            <div style={{ flexShrink: 0, height: 34, background: "#1A1D2E", display: "flex", alignItems: "center", padding: "0 14px", gap: 7, borderBottom: "1px solid #2A3060" }}>
-              {["#FF5F57","#FEBC2E","#28C840"].map((c) => (
-                <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
-              ))}
-              <div style={{ flex: 1, marginLeft: 10, background: "#0D1020", borderRadius: 5, padding: "3px 12px", fontSize: 12, color: "#5A6A90", fontFamily: '"Inter",monospace' }}>
-                报警配置管理
+            Alert Steps
+          </p>
+          {ALERT_STEPS.map((step, i) => (
+            <AlertStepItem key={i} index={i} {...step} />
+          ))}
+        </div>
+
+        {/* Right: media area */}
+        <div style={{ flex: 1, position: "relative", alignSelf: "stretch", minHeight: 0 }}>
+
+          {/* Segment 1: alert-config.mp4 — desktop browser */}
+          {(inSeg1 || frame < SEG1_END + FADE) && (
+            <div
+              style={{
+                position: "absolute", inset: 0,
+                opacity: seg1Opacity,
+                transform: `translateY(${entryY(seg1Spring)}px) scale(${entryScl(seg1Spring)})`,
+                display: "flex", flexDirection: "column",
+                borderRadius: 10, overflow: "hidden",
+                border: `1.5px solid #F5A62344`,
+                boxShadow: "0 16px 48px rgba(0,0,0,0.5)",
+              }}
+            >
+              <div style={{ flexShrink: 0, height: 34, background: "#1A1D2E", display: "flex", alignItems: "center", padding: "0 14px", gap: 7, borderBottom: "1px solid #2A3060" }}>
+                {["#FF5F57","#FEBC2E","#28C840"].map((c) => (
+                  <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
+                ))}
+                <div style={{ flex: 1, marginLeft: 10, background: "#0D1020", borderRadius: 5, padding: "3px 12px", fontSize: 12, color: "#5A6A90", fontFamily: '"Inter",monospace' }}>
+                  报警配置管理
+                </div>
               </div>
-            </div>
-            <div style={{ flex: 1, overflow: "hidden", background: "#000" }}>
-              <Sequence durationInFrames={SEG1_END + FADE}>
-                <OffthreadVideo
-                  src={staticFile("videos/alert-config.mp4")}
-                  style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                />
-              </Sequence>
-            </div>
-          </div>
-        )}
-
-        {/* T1: 配置下发示意 — overlaps with Seg1 by OVERLAP frames */}
-        {(inT1 || (frame >= SEG1_END - OVERLAP && frame < T1_END + FADE)) && (
-          <div style={{ position: "absolute", inset: 0, opacity: t1Opacity }}>
-            <ConfigPushTransition startFrame={SEG1_END - OVERLAP} />
-          </div>
-        )}
-
-        {/* Segment 2: factory-device-alert.jpg */}
-        {(inSeg2 || (frame >= T1_END - FADE && frame < SEG2_END + FADE)) && (
-          <div
-            style={{
-              position: "absolute", inset: 0,
-              opacity: seg2Opacity,
-              transform: `translateY(${entryY(seg2Spring)}px) scale(${entryScl(seg2Spring)})`,
-              borderRadius: 12, overflow: "hidden",
-              border: `2px solid rgba(255,60,60,${alertBorderOpacity})`,
-              boxShadow: `0 0 32px rgba(255,60,60,${alertBorderOpacity * 0.5}), 0 16px 48px rgba(0,0,0,0.5)`,
-            }}
-          >
-            <Img src={staticFile("screenshots/factory-device-alert.jpg")} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-            <div style={{ position: "absolute", inset: 0, background: `rgba(255,40,40,${alertFlash})`, pointerEvents: "none" }} />
-            <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px)" }} />
-            <div style={{ position: "absolute", top: 16, right: 16, background: "rgba(220,30,30,0.9)", borderRadius: 6, padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, opacity: badgeBlink, boxShadow: "0 0 12px rgba(255,50,50,0.6)" }}>
-              <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', letterSpacing: "0.05em" }}>报警触发中</span>
-            </div>
-            <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%)", padding: "24px 28px 20px", display: "flex", alignItems: "flex-end", gap: 14 }}>
-              <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                <path d="M16 4L30 28H2L16 4Z" stroke="#FF4444" strokeWidth="2" strokeLinejoin="round" fill="rgba(255,68,68,0.15)" />
-                <line x1="16" y1="13" x2="16" y2="21" stroke="#FF4444" strokeWidth="2.2" strokeLinecap="round" />
-                <circle cx="16" cy="24.5" r="1.4" fill="#FF4444" />
-              </svg>
-              <div>
-                <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#FF6060", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>设备报警触发</p>
-                <p style={{ margin: "4px 0 0", fontSize: 15, color: "rgba(255,255,255,0.7)", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>系统已自动推送通知至管理人员手机</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* T2: 微信通知过渡 */}
-        {(inT2 || (frame >= SEG2_END - FADE && frame < T2_END + FADE)) && (
-          <div style={{ position: "absolute", inset: 0, opacity: t2Opacity }}>
-            <WechatNotificationTransition startFrame={SEG2_END} />
-          </div>
-        )}
-
-        {/* Segment 3: alert-process.mp4 — phone frame */}
-        {inSeg3 && (
-          <div
-            style={{
-              position: "absolute", inset: 0,
-              opacity: seg3Opacity,
-              transform: `translateY(${entryY(seg3Spring)}px) scale(${entryScl(seg3Spring)})`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-            }}
-          >
-            <div style={{
-              position: "relative", height: "100%", aspectRatio: "9/21",
-              padding: "12px 8px",
-              background: "linear-gradient(160deg,#1E2235 0%,#13151F 100%)",
-              borderRadius: 28,
-              border: `1.5px solid ${COLORS.cyan}44`,
-              boxShadow: `0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px ${COLORS.cyan}22, inset 0 1px 0 rgba(255,255,255,0.05)`,
-              display: "flex", flexDirection: "column",
-            }}>
-              <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", width: 52, height: 16, background: "#0D0F1A", borderRadius: "0 0 10px 10px", zIndex: 2 }} />
-              <div style={{ height: 10, flexShrink: 0 }} />
-              <div style={{ flex: 1, borderRadius: 16, overflow: "hidden", background: "#000" }}>
-                {/* from={T2_END} resets frame so video plays from 0 */}
-                <Sequence from={T2_END}>
+              <div style={{ flex: 1, overflow: "hidden", background: "#000" }}>
+                <Sequence durationInFrames={SEG1_END + FADE}>
                   <OffthreadVideo
-                    src={staticFile("videos/alert-process.mp4")}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    src={staticFile("videos/alert-config.mp4")}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
                   />
                 </Sequence>
               </div>
-              <div style={{ display: "flex", justifyContent: "center", marginTop: 8, flexShrink: 0 }}>
-                <div style={{ width: 40, height: 3, borderRadius: 2, background: "#5A6A9044" }} />
-              </div>
-              <div style={{ position: "absolute", inset: -1, borderRadius: 29, border: `1.5px solid ${COLORS.cyan}55`, pointerEvents: "none" }} />
             </div>
-          </div>
-        )}
+          )}
+
+          {/* T1: 配置下发示意 — overlaps with Seg1 by OVERLAP frames */}
+          {(inT1 || (frame >= SEG1_END - OVERLAP && frame < T1_END + FADE)) && (
+            <div style={{ position: "absolute", inset: 0, opacity: t1Opacity }}>
+              <ConfigPushTransition startFrame={SEG1_END - OVERLAP} />
+            </div>
+          )}
+
+          {/* Segment 2: factory-device-alert.jpg */}
+          {(inSeg2 || (frame >= T1_END - FADE && frame < SEG2_END + FADE)) && (
+            <div
+              style={{
+                position: "absolute", inset: 0,
+                opacity: seg2Opacity,
+                transform: `translateY(${entryY(seg2Spring)}px) scale(${entryScl(seg2Spring)})`,
+                borderRadius: 12, overflow: "hidden",
+                border: `2px solid rgba(255,60,60,${alertBorderOpacity})`,
+                boxShadow: `0 0 32px rgba(255,60,60,${alertBorderOpacity * 0.5}), 0 16px 48px rgba(0,0,0,0.5)`,
+              }}
+            >
+              <Img src={staticFile("screenshots/factory-device-alert.jpg")} style={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
+              <div style={{ position: "absolute", inset: 0, background: `rgba(255,40,40,${alertFlash})`, pointerEvents: "none" }} />
+              <div style={{ position: "absolute", inset: 0, pointerEvents: "none", backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px)" }} />
+              <div style={{ position: "absolute", top: 16, right: 16, background: "rgba(220,30,30,0.9)", borderRadius: 6, padding: "6px 16px", display: "flex", alignItems: "center", gap: 8, opacity: badgeBlink, boxShadow: "0 0 12px rgba(255,50,50,0.6)" }}>
+                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#fff" }} />
+                <span style={{ fontSize: 16, fontWeight: 700, color: "#fff", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif', letterSpacing: "0.05em" }}>报警触发中</span>
+              </div>
+              <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%)", padding: "24px 28px 20px", display: "flex", alignItems: "flex-end", gap: 14 }}>
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                  <path d="M16 4L30 28H2L16 4Z" stroke="#FF4444" strokeWidth="2" strokeLinejoin="round" fill="rgba(255,68,68,0.15)" />
+                  <line x1="16" y1="13" x2="16" y2="21" stroke="#FF4444" strokeWidth="2.2" strokeLinecap="round" />
+                  <circle cx="16" cy="24.5" r="1.4" fill="#FF4444" />
+                </svg>
+                <div>
+                  <p style={{ margin: 0, fontSize: 22, fontWeight: 700, color: "#FF6060", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>设备报警触发</p>
+                  <p style={{ margin: "4px 0 0", fontSize: 15, color: "rgba(255,255,255,0.7)", fontFamily: '"PingFang SC","Microsoft YaHei",sans-serif' }}>系统已自动推送通知至管理人员手机</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* T2: 微信通知过渡 */}
+          {(inT2 || (frame >= SEG2_END - FADE && frame < T2_END + FADE)) && (
+            <div style={{ position: "absolute", inset: 0, opacity: t2Opacity }}>
+              <WechatNotificationTransition startFrame={SEG2_END} />
+            </div>
+          )}
+
+          {/* Segment 3: alert-process.mp4 — phone frame */}
+          {inSeg3 && (
+            <div
+              style={{
+                position: "absolute", inset: 0,
+                opacity: seg3Opacity,
+                transform: `translateY(${entryY(seg3Spring)}px) scale(${entryScl(seg3Spring)})`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}
+            >
+              <div style={{
+                position: "relative", height: "100%", aspectRatio: "9/21",
+                padding: "12px 8px",
+                background: "linear-gradient(160deg,#1E2235 0%,#13151F 100%)",
+                borderRadius: 28,
+                border: `1.5px solid ${COLORS.cyan}44`,
+                boxShadow: `0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px ${COLORS.cyan}22, inset 0 1px 0 rgba(255,255,255,0.05)`,
+                display: "flex", flexDirection: "column",
+              }}>
+                <div style={{ position: "absolute", top: 12, left: "50%", transform: "translateX(-50%)", width: 52, height: 16, background: "#0D0F1A", borderRadius: "0 0 10px 10px", zIndex: 2 }} />
+                <div style={{ height: 10, flexShrink: 0 }} />
+                <div style={{ flex: 1, borderRadius: 16, overflow: "hidden", background: "#000" }}>
+                  {/* from={T2_END} resets frame so video plays from 0 */}
+                  <Sequence from={T2_END}>
+                    <OffthreadVideo
+                      src={staticFile("videos/alert-process.mp4")}
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </Sequence>
+                </div>
+                <div style={{ display: "flex", justifyContent: "center", marginTop: 8, flexShrink: 0 }}>
+                  <div style={{ width: 40, height: 3, borderRadius: 2, background: "#5A6A9044" }} />
+                </div>
+                <div style={{ position: "absolute", inset: -1, borderRadius: 29, border: `1.5px solid ${COLORS.cyan}55`, pointerEvents: "none" }} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Bottom cards — always visible ── */}
-      <div style={{ position: "absolute", bottom: 44, left: 100, right: 100, display: "flex", gap: 28 }}>
+      <div style={{ position: "absolute", bottom: 44, left: 60, right: 60, display: "flex", gap: 28 }}>
         {FEATURE_CARDS.map((card, i) => (
           <div
             key={card.title}
@@ -735,7 +883,7 @@ const AlertFeaturePage: React.FC = () => {
 
 // ── Scene ───────────────────────────────────────────────────────────────────
 
-// Scene 06: 场景一 — 设备状态管理应用生成 — 1140 frames
+// Scene 06: 场景一 — 设备状态管理应用生成 — 1320 frames
 
 export const Scene1Visualization: React.FC = () => {
   const { fps } = useVideoConfig();
