@@ -1,5 +1,6 @@
 import {
   AbsoluteFill,
+  Easing,
   Img,
   OffthreadVideo,
   Sequence,
@@ -185,6 +186,241 @@ const Scene1Illustration: React.FC = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// ── Device monitor app-gen video section ────────────────────────────────────
+
+const VIDEO_DEVICE_MONITOR = 1470; // 49s @ 30fps
+
+const DEVICE_MONITOR_STEPS = [
+  { label: "描述监控需求",  labelEn: "Describe monitoring need", startFrame: 0,    doneFrame: 400  },
+  { label: "AI 生成看板",   labelEn: "AI generates dashboard",   startFrame: 400,  doneFrame: 1200 },
+  { label: "一键部署上线",  labelEn: "Deploy in one click",      startFrame: 1200, doneFrame: 1470 },
+];
+
+const DeviceMonitorVideoSection: React.FC = () => {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+
+  const EXIT_START = 1410; // flip begins ~2s before end
+
+  // Entrance spring
+  const enterSpring   = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 25 });
+  const entranceScale   = interpolate(enterSpring, [0, 1], [0.92, 1]);
+  const entranceOpacity = enterSpring;
+
+  // Flip exit (rotateY 0 → 90deg)
+  const flipAngle = interpolate(frame, [EXIT_START, VIDEO_DEVICE_MONITOR], [0, 90], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.in(Easing.quad),
+  });
+  const exitOpacity = interpolate(frame, [EXIT_START + 10, VIDEO_DEVICE_MONITOR - 5], [1, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  const combinedOpacity = entranceOpacity * exitOpacity;
+  const videoTransform  = `perspective(1000px) scale(${entranceScale}) rotateY(${flipAngle}deg)`;
+
+  // Glow pulse
+  const glowPulse = interpolate(
+    Math.sin((frame / fps) * Math.PI * 0.8),
+    [-1, 1],
+    [0.35, 0.70],
+  );
+
+  // Progress bar
+  const progress = interpolate(frame, [0, VIDEO_DEVICE_MONITOR], [0, 100], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  // Floating accent dots
+  const dots = [
+    { cx: "8%",  cy: "20%", delay: 0,  size: 5 },
+    { cx: "6%",  cy: "60%", delay: 15, size: 4 },
+    { cx: "92%", cy: "30%", delay: 8,  size: 5 },
+    { cx: "94%", cy: "70%", delay: 22, size: 4 },
+    { cx: "50%", cy: "92%", delay: 30, size: 4 },
+  ];
+
+  // Left panel slide-in
+  const panelSpring = spring({ frame: frame - 10, fps, config: { damping: 200 }, durationInFrames: 22 });
+  const panelX = interpolate(panelSpring, [0, 1], [-40, 0]);
+
+  return (
+    <AbsoluteFill
+      style={{
+        backgroundColor: COLORS.bgPrimary,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "60px 60px",
+        gap: 60,
+      }}
+    >
+      {/* Background grid */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          backgroundImage: `linear-gradient(${COLORS.border} 1px, transparent 1px),
+            linear-gradient(90deg, ${COLORS.border} 1px, transparent 1px)`,
+          backgroundSize: "60px 60px",
+          opacity: 0.15,
+        }}
+      />
+
+      {/* Floating dots */}
+      {dots.map((d, i) => {
+        const dotOpacity = interpolate(
+          Math.sin(((frame + d.delay * 8) / fps) * Math.PI * 0.6),
+          [-1, 1],
+          [0.15, 0.45],
+        );
+        return (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: d.cx,
+              top: d.cy,
+              width: d.size,
+              height: d.size,
+              borderRadius: "50%",
+              background: COLORS.brandBlue,
+              opacity: dotOpacity,
+            }}
+          />
+        );
+      })}
+
+      {/* Left: step checklist */}
+      <div
+        style={{
+          opacity: interpolate(panelSpring, [0, 1], [0, 1]),
+          transform: `translateX(${panelX}px)`,
+          flex: "0 0 320px",
+          zIndex: 1,
+        }}
+      >
+        <p
+          style={{
+            margin: "0 0 36px",
+            fontSize: 22,
+            fontWeight: 500,
+            color: COLORS.textSecondary,
+            fontFamily: '"Inter", sans-serif',
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+          }}
+        >
+          Monitor Steps
+        </p>
+        {DEVICE_MONITOR_STEPS.map((step, i) => (
+          <AlertStepItem key={i} index={i} {...step} />
+        ))}
+      </div>
+
+      {/* Right: framed video */}
+      <div
+        style={{
+          flex: "0 0 820px",
+          opacity: combinedOpacity,
+          transform: videoTransform,
+          transformOrigin: "center center",
+          zIndex: 1,
+          position: "relative",
+        }}
+      >
+        {/* Glow halo */}
+        <div
+          style={{
+            position: "absolute",
+            inset: -60,
+            borderRadius: 32,
+            background: `${COLORS.brandBlue}${Math.round(glowPulse * 255).toString(16).padStart(2, "0")}`,
+            filter: "blur(72px)",
+          }}
+        />
+        {/* Secondary outer ring glow */}
+        <div
+          style={{
+            position: "absolute",
+            inset: -90,
+            borderRadius: 40,
+            background: `${COLORS.accent}${Math.round(glowPulse * 0.35 * 255).toString(16).padStart(2, "0")}`,
+            filter: "blur(90px)",
+          }}
+        />
+
+        {/* Window frame */}
+        <div
+          style={{
+            position: "relative",
+            borderRadius: 14,
+            overflow: "hidden",
+            border: `1.5px solid ${COLORS.brandBlue}55`,
+            boxShadow: `0 0 0 1px ${COLORS.border}, 0 32px 64px rgba(0,0,0,0.6)`,
+          }}
+        >
+          {/* Chrome bar */}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "10px 18px",
+              background: "#0A0A12",
+              borderBottom: `1px solid ${COLORS.border}`,
+            }}
+          >
+            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FF5F57" }} />
+            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#FFBD2E" }} />
+            <div style={{ width: 11, height: 11, borderRadius: "50%", background: "#28C940" }} />
+            <span
+              style={{
+                marginLeft: 12,
+                fontSize: 13,
+                color: COLORS.textSecondary,
+                fontFamily: '"Inter", sans-serif',
+                opacity: 0.6,
+              }}
+            >
+              蜻蜓工业助手 · 设备监控应用生成
+            </span>
+          </div>
+
+          {/* Video */}
+          <OffthreadVideo
+            src={staticFile("videos/device-monitor-app-gen.mp4")}
+            style={{ width: "100%", display: "block" }}
+          />
+
+          {/* Progress bar */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 3,
+              background: COLORS.border,
+            }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${progress}%`,
+                background: `linear-gradient(90deg, ${COLORS.brandBlue}, ${COLORS.accent})`,
+              }}
+            />
+          </div>
+        </div>
+      </div>
+    </AbsoluteFill>
   );
 };
 
@@ -891,7 +1127,7 @@ const AlertFeaturePage: React.FC = () => {
 
 // ── Scene ───────────────────────────────────────────────────────────────────
 
-// Scene 06: 场景一 — 设备状态管理应用生成 — 1320 frames
+// Scene 06: 场景一 — 设备状态管理应用生成 — 2790 frames (8s intro + 49s video + 36s alert)
 
 export const Scene1Visualization: React.FC = () => {
   const { fps } = useVideoConfig();
@@ -912,7 +1148,10 @@ export const Scene1Visualization: React.FC = () => {
           illustrationNode={<Scene1Illustration />}
         />
       </Sequence>
-      <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={ALERT_DISPLAY_FRAMES} premountFor={fps}>
+      <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={VIDEO_DEVICE_MONITOR} premountFor={fps}>
+        <DeviceMonitorVideoSection />
+      </Sequence>
+      <Sequence from={SCENE_VIDEO_OFFSET + VIDEO_DEVICE_MONITOR} durationInFrames={ALERT_DISPLAY_FRAMES} premountFor={fps}>
         <AlertFeaturePage />
       </Sequence>
     </AbsoluteFill>
