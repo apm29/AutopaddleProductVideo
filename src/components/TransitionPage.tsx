@@ -17,6 +17,7 @@ interface TransitionPageProps {
   tagEn?: string;       // e.g. "Scene 1"
   imageSrc?: string;    // filename in public/images/, e.g. "2.png"
   imageAlt?: string;
+  illustrationNode?: React.ReactNode; // inline SVG/JSX illustration (used when no imageSrc)
   layout?: "text-only" | "text-image"; // text-only centers text, text-image splits 50/50
 }
 
@@ -27,13 +28,14 @@ export const TransitionPage: React.FC<TransitionPageProps> = ({
   tagEn,
   imageSrc,
   imageAlt = "图示",
+  illustrationNode,
   layout,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
   // Auto-detect layout
-  const effectiveLayout = layout ?? (imageSrc ? "text-image" : "text-only");
+  const effectiveLayout = layout ?? (imageSrc || illustrationNode ? "text-image" : "text-only");
 
   const tagSpring = spring({ frame, fps, config: { damping: 200 }, durationInFrames: 20 });
   const titleSpring = spring({ frame: frame - 8, fps, config: { damping: 200 }, durationInFrames: 22 });
@@ -177,6 +179,20 @@ export const TransitionPage: React.FC<TransitionPageProps> = ({
           alt={imageAlt}
         />
       </div>
+    </div>
+  ) : illustrationNode ? (
+    <div
+      style={{
+        flex: "0 0 50%",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "40px 80px 40px 40px",
+        opacity: imageSpring,
+        transform: `translateX(${imageX}px) scale(${imageScale})`,
+      }}
+    >
+      {illustrationNode}
     </div>
   ) : null;
 

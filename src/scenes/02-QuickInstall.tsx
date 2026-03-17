@@ -1,8 +1,8 @@
 import {
   AbsoluteFill,
   Easing,
+  OffthreadVideo,
   Sequence,
-  Video,
   interpolate,
   spring,
   staticFile,
@@ -23,6 +23,248 @@ const STEPS = [
   { label: "安装程序文件",   labelEn: "Installing files",      startFrame: 80 },
   { label: "启动并完成登录", labelEn: "Launch & sign in",      startFrame: 200 },
 ];
+
+// Monitor + tower SVG illustration with CRT power-on animation
+const LaptopIllustration: React.FC = () => {
+  const frame = useCurrentFrame();
+
+  // Screen rect constants (in monitor's local coord space, before translate)
+  const SX = 42, SY = 32, SW = 436, SH = 266;
+  const centerY = SY + SH / 2; // 165
+
+  // CRT horizontal-line → full-screen expansion (frames 16–54)
+  const crtExpand = interpolate(frame, [16, 54], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.out(Easing.cubic),
+  });
+  const expandedH = crtExpand * SH;
+  const clipY = centerY - expandedH / 2;
+
+  // Bright white CRT line opacity
+  const lineOpacity = interpolate(frame, [14, 17, 32, 54], [0, 1, 0.6, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  // Phosphor bloom flash right after power-on
+  const phosphorOpacity = interpolate(frame, [16, 21, 38], [0, 0.4, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  // Content fades in after CRT expansion
+  const contentOpacity = interpolate(frame, [50, 74], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+  // Scanline overlay fades out after reveal
+  const scanOpacity = interpolate(frame, [50, 62, 82], [0.5, 0.25, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+  });
+
+  return (
+    <svg
+      width="640"
+      height="380"
+      viewBox="0 0 640 380"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* ══ Monitor (shifted -20 so tower fits) ══ */}
+      <g transform="translate(-20, 0)">
+        {/* Outer chassis — blue-tinted for contrast */}
+        <rect x="30" y="20" width="460" height="290" rx="12" fill="#1C1F3A" stroke="#2E3A6E" strokeWidth="2" />
+        {/* Inner bezel */}
+        <rect x={SX} y={SY} width={SW} height={SH} rx="7" fill="#07070F" />
+
+        {/* ── Screen content (clipped by CRT reveal) ── */}
+        <g clipPath="url(#crtClip)" opacity={contentOpacity}>
+          {/* Chrome bar */}
+          <rect x="42" y="32" width="436" height="24" rx="7" fill="#13131F" />
+          <rect x="42" y="44" width="436" height="12" fill="#13131F" />
+          <circle cx="60" cy="44" r="5" fill="#FF5F57" />
+          <circle cx="76" cy="44" r="5" fill="#FFBD2E" />
+          <circle cx="92" cy="44" r="5" fill="#28C940" />
+          <rect x="196" y="39" width="128" height="10" rx="5" fill="#1E2235" />
+
+          {/* Sidebar */}
+          <rect x="42" y="56" width="120" height="242" fill="#0D0D14" />
+          <rect x="58" y="70" width="26" height="26" rx="7" fill="#1A6EFF" opacity="0.9" />
+          <rect x="64" y="77" width="14" height="3" rx="1.5" fill="#fff" opacity="0.9" />
+          <rect x="64" y="83" width="10" height="3" rx="1.5" fill="#fff" opacity="0.7" />
+          <rect x="64" y="89" width="12" height="3" rx="1.5" fill="#fff" opacity="0.5" />
+          <rect x="90" y="74" width="58" height="8" rx="3" fill="#1E2235" />
+          <rect x="90" y="86" width="44" height="6" rx="3" fill="#1E2235" opacity="0.5" />
+
+          {/* Step 1 done */}
+          <circle cx="66" cy="130" r="9" fill="#1A6EFF" />
+          <path d="M62 130l3.5 3.5L74 124" stroke="#fff" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="82" y="125" width="66" height="8" rx="3" fill="#E8EDF5" opacity="0.75" />
+          <line x1="66" y1="139" x2="66" y2="153" stroke="#1A6EFF" strokeWidth="1.5" strokeDasharray="2 2" />
+          {/* Step 2 active */}
+          <circle cx="66" cy="162" r="9" fill="#1A6EFF" />
+          <text x="62" y="167" fontSize="10" fill="#fff" fontWeight="bold" fontFamily="monospace">2</text>
+          <rect x="82" y="157" width="74" height="8" rx="3" fill="#E8EDF5" opacity="0.9" />
+          <rect x="82" y="169" width="54" height="6" rx="3" fill="#1A6EFF" opacity="0.4" />
+          <line x1="66" y1="171" x2="66" y2="185" stroke="#1A6EFF" strokeWidth="1.5" />
+          {/* Step 3 pending */}
+          <circle cx="66" cy="194" r="9" fill="none" stroke="#1E2235" strokeWidth="1.5" />
+          <text x="62" y="199" fontSize="10" fill="#7A8599" fontFamily="monospace">3</text>
+          <rect x="82" y="189" width="60" height="8" rx="3" fill="#1E2235" />
+          <line x1="66" y1="203" x2="66" y2="217" stroke="#1E2235" strokeWidth="1.5" strokeDasharray="2 2" />
+          {/* Step 4 pending */}
+          <circle cx="66" cy="226" r="9" fill="none" stroke="#1E2235" strokeWidth="1.5" />
+          <text x="62" y="231" fontSize="10" fill="#7A8599" fontFamily="monospace">4</text>
+          <rect x="82" y="221" width="68" height="8" rx="3" fill="#1E2235" />
+
+          {/* Sidebar divider */}
+          <line x1="162" y1="56" x2="162" y2="298" stroke="#1E2235" strokeWidth="1" />
+
+          {/* Main panel */}
+          <rect x="162" y="56" width="316" height="242" fill="#0F0F1A" />
+          <rect x="182" y="74" width="150" height="13" rx="4" fill="#E8EDF5" opacity="0.85" />
+          <rect x="182" y="92" width="240" height="8" rx="3" fill="#7A8599" opacity="0.55" />
+          {/* Path field */}
+          <rect x="182" y="114" width="70" height="7" rx="3" fill="#7A8599" opacity="0.5" />
+          <rect x="182" y="126" width="236" height="24" rx="6" fill="#13131F" stroke="#1E2235" strokeWidth="1" />
+          <rect x="190" y="133" width="148" height="8" rx="3" fill="#1E2235" />
+          <rect x="400" y="128" width="40" height="20" rx="5" fill="#1A6EFF" opacity="0.8" />
+          <rect x="406" y="133" width="28" height="8" rx="3" fill="#fff" opacity="0.45" />
+          {/* Disk info */}
+          <rect x="182" y="158" width="80" height="6" rx="3" fill="#7A8599" opacity="0.45" />
+          <rect x="270" y="158" width="50" height="6" rx="3" fill="#00C4FF" opacity="0.6" />
+          {/* Progress */}
+          <rect x="182" y="176" width="70" height="7" rx="3" fill="#7A8599" opacity="0.5" />
+          <rect x="182" y="188" width="256" height="12" rx="6" fill="#1E2235" />
+          <rect x="182" y="188" width="158" height="12" rx="6" fill="url(#monitorProgress)" />
+          <rect x="348" y="188" width="44" height="12" rx="5" fill="#1E2235" />
+          <rect x="352" y="192" width="28" height="5" rx="2.5" fill="#1A6EFF" opacity="0.55" />
+          {/* Log box */}
+          <rect x="182" y="210" width="256" height="68" rx="6" fill="#0D0D14" stroke="#1E2235" strokeWidth="1" />
+          <rect x="192" y="220" width="160" height="6" rx="3" fill="#1E2235" />
+          <rect x="192" y="231" width="190" height="6" rx="3" fill="#1E2235" />
+          <rect x="192" y="242" width="140" height="6" rx="3" fill="#1E2235" />
+          <rect x="192" y="253" width="210" height="6" rx="3" fill="#1A6EFF" opacity="0.5" />
+          <rect x="192" y="264" width="120" height="6" rx="3" fill="#1A6EFF" opacity="0.3" />
+          {/* Action bar */}
+          <rect x="162" y="278" width="316" height="20" fill="#13131F" />
+          <rect x="368" y="281" width="68" height="14" rx="5" fill="#1A6EFF" />
+          <rect x="377" y="285" width="50" height="6" rx="3" fill="#fff" opacity="0.6" />
+          <rect x="292" y="281" width="68" height="14" rx="5" fill="#1E2235" />
+          <rect x="301" y="285" width="50" height="6" rx="3" fill="#7A8599" opacity="0.5" />
+        </g>
+
+        {/* Scanline overlay (fades out after reveal) */}
+        <rect x={SX} y={SY} width={SW} height={SH}
+          fill="url(#scanlines)" opacity={scanOpacity}
+          clipPath="url(#crtClip)" />
+
+        {/* Phosphor bloom flash */}
+        <rect x={SX} y={SY} width={SW} height={SH} rx="7"
+          fill="#99BBFF" opacity={phosphorOpacity} />
+
+        {/* CRT expanding bright line */}
+        <rect
+          x={SX} y={centerY - 3} width={SW} height={6}
+          fill="white" opacity={lineOpacity}
+          filter="url(#crtGlow)"
+        />
+
+        {/* Screen border glow */}
+        <rect x={SX} y={SY} width={SW} height={SH} rx="7"
+          fill="none" stroke="#1A6EFF" strokeWidth="1.5"
+          opacity={0.1 + contentOpacity * 0.25} />
+
+        {/* Stand neck */}
+        <rect x="238" y="310" width="44" height="36" rx="4" fill="#1C1F3A" stroke="#2E3A6E" strokeWidth="1.5" />
+        <rect x="246" y="314" width="28" height="28" rx="3" fill="#0A0B18" />
+        {/* Stand base */}
+        <rect x="170" y="344" width="180" height="16" rx="8" fill="#1C1F3A" stroke="#2E3A6E" strokeWidth="1.5" />
+        {/* Power LED */}
+        <circle cx="260" cy="304" r="3.5" fill="#1A6EFF"
+          opacity={0.2 + contentOpacity * 0.8} />
+      </g>
+
+      {/* ══ Tower case (机箱) — larger ══ */}
+      {/* Body */}
+      <rect x="496" y="58" width="132" height="240" rx="9" fill="#1C1F3A" stroke="#2E3A6E" strokeWidth="1.5" />
+      {/* Side panel with mesh */}
+      <rect x="504" y="66" width="78" height="224" rx="5" fill="#111428" stroke="#252A4E" strokeWidth="1" />
+      {[0,1,2,3,4,5,6,7,8].map((i) => (
+        <line key={i} x1="508" y1={78 + i * 17} x2="578" y2={78 + i * 17}
+          stroke="#1E2245" strokeWidth="1" opacity="0.9" />
+      ))}
+      {/* Right button strip */}
+      <rect x="586" y="66" width="34" height="224" rx="0" fill="#131628" />
+      <rect x="586" y="66" width="34" height="224" rx="0" fill="none" stroke="#252A4E" strokeWidth="0.5" />
+
+      {/* 5.25" drive bay top */}
+      <rect x="498" y="62" width="128" height="30" rx="0" fill="#111428" stroke="#252A4E" strokeWidth="0.5" />
+      <rect x="506" y="66" width="112" height="20" rx="4" fill="#161830" stroke="#252A4E" strokeWidth="0.5" />
+
+      {/* Power button */}
+      <circle cx="609" cy="118" r="11" fill="#161830" stroke="#2E3A6E" strokeWidth="1.5" />
+      <circle cx="609" cy="118" r="7" fill="#1A6EFF"
+        opacity={0.25 + contentOpacity * 0.75} />
+
+      {/* Reset button */}
+      <circle cx="609" cy="142" r="5.5" fill="#131628" stroke="#252A4E" strokeWidth="1" />
+      <circle cx="609" cy="142" r="3" fill="#7A8599" opacity="0.4" />
+
+      {/* Power LED */}
+      <rect x="600" y="157" width="18" height="6" rx="3"
+        fill="#1A6EFF" opacity={contentOpacity * 0.85} />
+
+      {/* HDD LED */}
+      <rect x="600" y="168" width="18" height="6" rx="3"
+        fill="#FF6B1A" opacity={contentOpacity * 0.6} />
+
+      {/* USB ports */}
+      <rect x="592" y="184" width="26" height="12" rx="2.5" fill="#0A0A16" stroke="#252A4E" strokeWidth="0.8" />
+      <rect x="592" y="200" width="26" height="12" rx="2.5" fill="#0A0A16" stroke="#252A4E" strokeWidth="0.8" />
+      {/* Audio jacks */}
+      <rect x="592" y="216" width="11" height="11" rx="2" fill="#0A0A16" stroke="#252A4E" strokeWidth="0.8" />
+      <rect x="607" y="216" width="11" height="11" rx="2" fill="#0A0A16" stroke="#252A4E" strokeWidth="0.8" />
+
+      {/* Front vent grills */}
+      {[0,1,2,3,4,5].map((i) => (
+        <rect key={i} x="506" y={256 + i * 10} width="70" height="6" rx="3"
+          fill="#1E2245" opacity="0.8" />
+      ))}
+
+      {/* Tower base foot */}
+      <rect x="500" y="294" width="124" height="8" rx="4" fill="#111428" stroke="#252A4E" strokeWidth="1" />
+
+      {/* Shadows */}
+      <ellipse cx="562" cy="368" rx="72" ry="7" fill="#000" opacity="0.3" />
+      <ellipse cx="220" cy="368" rx="158" ry="7" fill="#000" opacity="0.3" />
+
+      <defs>
+        {/* CRT reveal clip */}
+        <clipPath id="crtClip">
+          <rect x={SX} y={clipY} width={SW} height={expandedH} />
+        </clipPath>
+        {/* Progress bar gradient */}
+        <linearGradient id="monitorProgress" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stopColor="#1A6EFF" />
+          <stop offset="100%" stopColor="#00C4FF" />
+        </linearGradient>
+        {/* CRT line glow */}
+        <filter id="crtGlow" x="-10%" y="-400%" width="120%" height="900%">
+          <feGaussianBlur stdDeviation="5" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        {/* Scanlines pattern */}
+        <pattern id="scanlines" x={SX} y={SY} width="1" height="4" patternUnits="userSpaceOnUse">
+          <rect x="0" y="0" width="1" height="2" fill="#000" opacity="0.55" />
+        </pattern>
+      </defs>
+    </svg>
+  );
+};
 
 interface StepItemProps {
   label: string;
@@ -325,7 +567,7 @@ const InstallVideoSection: React.FC = () => {
           </div>
 
           {/* Video */}
-          <Video
+          <OffthreadVideo
             src={staticFile("videos/setup.mp4")}
             style={{ width: "100%", display: "block" }}
           />
@@ -387,7 +629,7 @@ export const QuickInstall: React.FC = () => {
         <TransitionPage
           title="快装"
           body="办公电脑即可安装部署，无需专用硬件与复杂环境。数据留存企业内网，权限与访问由你掌控，安全合规、可控可管。"
-          layout="text-only"
+          illustrationNode={<LaptopIllustration />}
         />
       </Sequence>
       <Sequence from={SCENE_VIDEO_OFFSET} durationInFrames={300} premountFor={fps}>
