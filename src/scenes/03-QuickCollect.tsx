@@ -350,7 +350,7 @@ const CollectVideoSection: React.FC = () => {
       {/* ── Right: framed video with flip exit ── */}
       <div
         style={{
-          flex: "0 0 820px",
+          flex: "0 0 980px",
           opacity: combinedOpacity,
           transform: videoTransform,
           transformOrigin: "center center",

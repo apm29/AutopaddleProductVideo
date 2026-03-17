@@ -7,8 +7,8 @@ import { QuickCollect } from "../scenes/03-QuickCollect";
 import { QuickUse } from "../scenes/04-QuickUse";
 import { CaseIntro } from "../scenes/05-CaseIntro";
 import { Scene1Visualization } from "../scenes/06-Scene1-Visualization";
-import { Scene2Alert } from "../scenes/07-Scene2-Alert";
-import { Scene3Efficiency } from "../scenes/08-Scene3-Efficiency";
+import { Scene2Report } from "../scenes/07-Scene2-Report";
+import { Scene3Capability } from "../scenes/08-Scene3-Capability";
 import { BrandOutro } from "../scenes/10-BrandOutro";
 
 // Main composition
@@ -79,7 +79,7 @@ export const QingTingVideo: React.FC = () => {
         premountFor={premount}
         name="07 · 场景二：生产数据报表"
       >
-        <Scene2Alert />
+        <Scene2Report />
       </Sequence>
 
       <Sequence
@@ -88,7 +88,7 @@ export const QingTingVideo: React.FC = () => {
         premountFor={premount}
         name="08 · 场景三：设备能力深度对接"
       >
-        <Scene3Efficiency />
+        <Scene3Capability />
       </Sequence>
 
       <Sequence

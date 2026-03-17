@@ -5,7 +5,7 @@ import { SCENE_VIDEO_OFFSET } from "../constants/timing";
 
 // Scene 08: 场景三 — 设备能力深度对接应用生成 — 1140 frames
 
-export const Scene3Efficiency: React.FC = () => {
+export const Scene3Capability: React.FC = () => {
   const { durationInFrames, fps } = useVideoConfig();
   const videoDuration = durationInFrames - SCENE_VIDEO_OFFSET;
 

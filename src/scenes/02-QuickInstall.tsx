@@ -504,7 +504,7 @@ const InstallVideoSection: React.FC = () => {
       {/* ── Right: card-flip wrapper ── */}
       <div
         style={{
-          flex: "0 0 580px",
+          flex: "0 0 820px",
           position: "relative",
           zIndex: 1,
         }}
